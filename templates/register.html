@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1.0" />
+<title>REGISTER — PIXEL TRUTH</title>
+<!-- FIX: Static path corrected from "auth.css" to Flask static route -->
+<link rel="stylesheet" href="/static/css/auth.css" />
+</head>
+<body>
+
+<div id="cursor-trail"></div>
+
+<!-- NAV — FIX: hrefs updated to Flask routes -->
+<nav>
+  <a class="nav-logo" href="/"><span>PIXEL</span> TRUTH</a>
+  <ul class="nav-links">
+    <li><a href="/">Home</a></li>
+    <li><a href="/login">Login</a></li>
+    <li><a href="/admin/register">Admin</a></li>
+  </ul>
+  <div class="nav-badge">● SYSTEM ONLINE</div>
+</nav>
+
+<!-- BACKGROUND -->
+<div class="page-grid"></div>
+<div class="radar radar-1"></div>
+<div class="radar radar-2"></div>
+
+<!-- MAIN -->
+<div class="page-wrapper">
+  <div class="auth-card">
+    <div class="card-corner tr"></div>
+    <div class="card-corner bl"></div>
+
+    <!-- HEADER -->
+    <div class="auth-tag">// New Operator</div>
+    <h1 class="auth-title">CREATE <span>ACCESS</span></h1>
+    <p class="auth-subtitle">Register your credentials to access the forensic detection system</p>
+
+    <!-- ALERT -->
+    <div class="alert" id="reg-alert"></div>
+
+    <!-- FORM -->
+    <form id="register-form" autocomplete="off">
+
+      <!-- USERNAME -->
+      <div class="form-group">
+        <label class="form-label" for="reg-username">Username</label>
+        <div class="form-input-wrap">
+          <span class="input-icon">◈</span>
+          <input class="form-input" type="text" id="reg-username" name="username"
+            placeholder="operator_id" autocomplete="off" spellcheck="false" />
+        </div>
+        <div class="field-hint" id="hint-username"></div>
+      </div>
+
+      <!-- MOBILE -->
+      <div class="form-group">
+        <label class="form-label" for="reg-mobile">Mobile Number</label>
+        <div class="form-input-wrap">
+          <span class="input-icon">⊕</span>
+          <input class="form-input" type="tel" id="reg-mobile" name="mobile"
+            placeholder="9876543210" autocomplete="off" maxlength="13" />
+        </div>
+        <div class="field-hint" id="hint-mobile"></div>
+      </div>
+
+      <!-- PASSWORD -->
+      <div class="form-group">
+        <label class="form-label" for="reg-password">Password</label>
+        <div class="form-input-wrap">
+          <span class="input-icon">⬡</span>
+          <input class="form-input" type="password" id="reg-password" name="password"
+            placeholder="••••••••" autocomplete="new-password" />
+          <button type="button" class="toggle-pw" data-target="reg-password">SHOW</button>
+        </div>
+        <!-- Strength Meter -->
+        <div class="strength-meter" id="pw-strength">
+          <div class="strength-bars">
+            <div class="strength-bar" id="sb1"></div>
+            <div class="strength-bar" id="sb2"></div>
+            <div class="strength-bar" id="sb3"></div>
+            <div class="strength-bar" id="sb4"></div>
+          </div>
+          <span class="strength-label" id="strength-label"></span>
+        </div>
+        <div class="field-hint" id="hint-password"></div>
+      </div>
+
+      <!-- CONFIRM PASSWORD -->
+      <div class="form-group">
+        <label class="form-label" for="reg-confirm">Confirm Password</label>
+        <div class="form-input-wrap">
+          <span class="input-icon">⬡</span>
+          <input class="form-input" type="password" id="reg-confirm" name="confirm_password"
+            placeholder="••••••••" autocomplete="new-password" />
+          <button type="button" class="toggle-pw" data-target="reg-confirm">SHOW</button>
+        </div>
+        <div class="field-hint" id="hint-confirm"></div>
+      </div>
+
+      <!-- SUBMIT -->
+      <button type="submit" class="btn-submit" id="reg-btn">INITIALIZE ACCOUNT</button>
+
+    </form>
+
+    <!-- DIVIDER -->
+    <div class="auth-divider"><span>Already registered?</span></div>
+
+    <!-- LINKS — FIX: hrefs updated to Flask routes -->
+    <div class="auth-links">
+      <a href="/login" class="auth-link accent">→ Login to system</a>
+      <a href="/admin/register" class="auth-link">Admin access ▲</a>
+    </div>
+
+  </div>
+</div>
+
+<footer class="auth-footer">© 2025 PIXEL TRUTH — AI FORENSIC SYSTEM</footer>
+
+<!-- FIX: Static path corrected from "auth.js" to Flask static route -->
+<script src="/static/js/auth.js"></script>
+<script>
+// ─── PASSWORD STRENGTH LIVE UPDATE ────────────────────
+document.getElementById('reg-password').addEventListener('input', function() {
+  const pw    = this.value;
+  const meter = document.getElementById('pw-strength');
+  const bars  = meter.querySelectorAll('.strength-bar');
+  const label = document.getElementById('strength-label');
+
+  if (pw.length === 0) {
+    bars.forEach(b => b.className = 'strength-bar');
+    label.textContent = '';
+    return;
+  }
+
+  let score = 0;
+  if (pw.length >= 8)          score++;
+  if (/[A-Z]/.test(pw))        score++;
+  if (/[0-9]/.test(pw))        score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+
+  bars.forEach((b, i) => {
+    b.className = 'strength-bar';
+    if (i < score) {
+      if (score === 1)      b.classList.add('s1');
+      else if (score === 2) b.classList.add('s2');
+      else                  b.classList.add('s3');
+    }
+  });
+
+  const labels = ['', 'WEAK', 'FAIR', 'GOOD', 'STRONG'];
+  const colors = ['', 'var(--accent2)', 'var(--warn)', 'var(--accent3)', 'var(--accent3)'];
+  label.textContent = labels[score] || 'STRONG';
+  label.style.color = colors[score] || 'var(--accent3)';
+});
+
+// ─── CONFIRM PASSWORD LIVE CHECK ───────────────────────
+document.getElementById('reg-confirm').addEventListener('input', function() {
+  const pw = document.getElementById('reg-password').value;
+  if (this.value && this.value !== pw) {
+    this.classList.add('error-field');
+  } else {
+    this.classList.remove('error-field');
+  }
+});
+
+// ─── FORM SUBMIT ───────────────────────────────────────
+document.getElementById('register-form').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  hideAlert('reg-alert');
+
+  const username = document.getElementById('reg-username').value.trim();
+  const mobile   = document.getElementById('reg-mobile').value.trim();
+  const password = document.getElementById('reg-password').value;
+  const confirm  = document.getElementById('reg-confirm').value;
+
+  let valid = true;
+
+  const unErr = validators.username(username);
+  markField('reg-username', unErr);
+  if (unErr) { document.getElementById('hint-username').textContent = '⚠ ' + unErr; document.getElementById('hint-username').classList.add('show'); valid = false; }
+  else document.getElementById('hint-username').classList.remove('show');
+
+  const mobErr = validators.mobile(mobile);
+  markField('reg-mobile', mobErr);
+  if (mobErr) { document.getElementById('hint-mobile').textContent = '⚠ ' + mobErr; document.getElementById('hint-mobile').classList.add('show'); valid = false; }
+  else document.getElementById('hint-mobile').classList.remove('show');
+
+  const pwErr = validators.password(password);
+  markField('reg-password', pwErr);
+  if (pwErr) { document.getElementById('hint-password').textContent = '⚠ ' + pwErr; document.getElementById('hint-password').classList.add('show'); valid = false; }
+  else document.getElementById('hint-password').classList.remove('show');
+
+  const cfErr = validators.confirmPassword(confirm, password);
+  markField('reg-confirm', cfErr);
+  if (cfErr) { document.getElementById('hint-confirm').textContent = '⚠ ' + cfErr; document.getElementById('hint-confirm').classList.add('show'); valid = false; }
+  else document.getElementById('hint-confirm').classList.remove('show');
+
+  if (!valid) {
+    showAlert('reg-alert', '⚠ Fix the errors above before submitting', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('reg-btn');
+  setBtnLoading(btn, true);
+
+  try {
+    const { ok, data } = await apiCall('/api/auth/register', { username, mobile, password });
+    if (ok && data.success) {
+      showAlert('reg-alert', '✓ Account created! Redirecting to login...', 'success');
+      setTimeout(() => window.location.href = '/login', 1800);
+    } else {
+      showAlert('reg-alert', '⚠ ' + (data.error || 'Registration failed. Try again.'), 'error');
+      setBtnLoading(btn, false);
+    }
+  } catch (err) {
+    showAlert('reg-alert', '⚠ Cannot connect to server. Check backend is running on port 5000.', 'info');
+    setBtnLoading(btn, false);
+  }
+});
+</script>
+</body>
+</html> 
