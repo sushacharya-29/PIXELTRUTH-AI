@@ -749,9 +749,9 @@ def train_model_v5(
         )
 
         # Early stopping
-        if patience_counter >= config.early_stop_patience:
+    """ if patience_counter >= config.early_stop_patience:
             print(f"\n⚠ Early stopping at epoch {epoch+1} (no improvement for {config.early_stop_patience} epochs)")
-            break
+            break"""
 
     print(f"\n{'='*70}")
     print(f"Training complete! Best balanced accuracy: {best_balanced_acc:.2f}%")

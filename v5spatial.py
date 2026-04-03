@@ -106,6 +106,7 @@ def _load_backbone() -> Tuple[nn.Module, int, str]:
 
     # Final fallback
     from torchvision.models import vit_b_16, ViT_B_16_Weights
+    
     model = vit_b_16(weights=ViT_B_16_Weights.IMAGENET1K_V1)
     print("  Loaded torchvision ViT-B/16 as fallback  (embed_dim=768)")
     return model, 768, 'torchvision_vitb16'

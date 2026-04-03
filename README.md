@@ -1,138 +1,185 @@
-# AI Image Detector
+# 🔍 PIXEL TRUTH — AI Image Forgery Detector
 
-A Python web application that detects whether an image is real or AI-generated using two complementary methods:
-
-1. **Metadata / EXIF Analysis** — real cameras embed rich metadata (GPS, make/model, timestamps, ICC profiles). AI tools typically strip or omit this.
-2. **Visual Pattern Analysis** — AI images show distinctive artifacts: unnaturally smooth noise, glossy skin, selective blur (hair/eyes/hands), unusual frequency spectra, and repeating textures.
+> **Upload an image. Know the truth.**  
+> A deep learning powered web app that detects whether an image is **AI-generated or real** — using a dual neural network ensemble (spatial + frequency analysis).
 
 ---
 
-## Project Structure
+## ✨ What It Does
+
+| Feature | Details |
+|---|---|
+| 🧠 Neural Detection | CLIP-based spatial model + lightweight frequency CNN |
+| 🔁 Smart Ensemble | Dynamic weighting based on model confidence |
+| 🛡️ Auth System | User + Admin registration/login with role-based access |
+| 🌐 Web Interface | Clean, cyberpunk-themed UI with real-time detection |
+| ⚡ Fallback Mode | Heuristic detector runs if neural models aren't loaded |
+
+---
+
+## 🗂️ Project Structure
 
 ```
-ai_detector/
-├── app.py              ← Flask web server & API routes
-├── detector.py         ← Detection engine (all analysis logic)
-├── requirements.txt    ← Python dependencies
+pixel-truth/
+│
+├── app.py                  # Flask server & API routes
+├── auth_routes.py          # User & admin auth (register/login)
+├── config.py               # Centralized configuration
+│
+├── v5spatial.py            # Spatial model (CLIP ViT backbone)
+├── v5frequency.py          # Frequency model (FFT-based CNN)
+├── v5training.py           # Training pipeline
+├── v5inference.py          # Inference / detection logic
+│
 ├── templates/
-│   └── index.html      ← Standalone HTML frontend (NO Django template tags)
-├── uploads/            ← Temp folder (auto-created, files deleted after analysis)
-└── README.md
+│   ├── landing.html        # Landing page
+│   ├── homepage.html       # Detection dashboard
+│   ├── login.html
+│   ├── register.html
+│   └── admin_register.html
+│
+├── static/
+│   ├── css/auth.css
+│   └── js/auth.js
+│
+├── checkpoints/            # Place trained .pth files here
+├── uploads/                # Temp upload folder (auto-created)
+└── data/                   # User store (auto-created)
 ```
 
 ---
 
-## Setup & Run
+## 🚀 Getting Started
 
-### 1. Install dependencies
+### 1. Clone the repo
+
+```bash
+git clone https://github.com/yourusername/pixel-truth.git
+cd pixel-truth
+```
+
+### 2. Create a virtual environment
+
+```bash
+python -m venv venv
+
+# Windows
+venv\Scripts\activate
+
+# Mac / Linux
+source venv/bin/activate
+```
+
+### 3. Install dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-Or install manually:
+> ⚠️ **PyTorch note:** For GPU support, install PyTorch separately from [pytorch.org](https://pytorch.org/get-started/locally/) matching your CUDA version.
 
-```bash
-pip install Flask Pillow numpy opencv-python-headless Werkzeug
-```
-
-### 2. Run the server
+### 4. Run the app
 
 ```bash
 python app.py
 ```
 
-### 3. Open in browser
-
-```
-http://localhost:5000
-```
+Open your browser at → **http://localhost:5000**
 
 ---
 
-## How Detection Works
+## 🧠 Using the Neural Models
 
-### Metadata Analysis (contributes ~35–55% of final score)
+The app works in two modes:
 
-| Signal | Real Photo | AI Image |
-|--------|-----------|----------|
-| EXIF data | ✅ Present (dozens of fields) | ❌ Usually absent |
-| Camera make/model | ✅ e.g. "Canon EOS R5" | ❌ None |
-| GPS coordinates | ✅ Often present | ❌ None |
-| Capture timestamp | ✅ Exact date/time | ❌ None |
-| ICC color profile | ✅ Usually embedded | ❌ Often absent |
-| AI software tag | — | ❌ "Stable Diffusion", "DALL-E", etc. |
+| Mode | When | Accuracy |
+|---|---|---|
+| 🟢 Neural Ensemble | When `.pth` checkpoints are present | High |
+| 🟡 Heuristic Fallback | When no checkpoints found | Lower |
 
-### Visual Analysis (contributes ~45–70% of final score)
+### Train your own models
 
-| Check | What we look for | Why it matters |
-|-------|-----------------|----------------|
-| **Noise Profile** | Sensor noise std deviation & uniformity | Real cameras have consistent shot noise; AI images are too smooth or have synthetic noise |
-| **Frequency Spectrum** | FFT magnitude distribution (low/mid/high ratios) | Camera optics create characteristic frequency falloff; diffusion models deviate |
-| **Sharpness Distribution** | Tile-by-tile Laplacian variance | AI often has extreme selective blur — sharp faces, blurred hands/hair |
-| **Skin Texture** | Brightness mean/std in skin-colored regions | AI produces waxy/glossy skin with low local variance |
-| **Edge Coherence** | Sobel gradient direction consistency | Real objects have physically consistent edges; AI hallucinations don't |
-| **Color Distribution** | HSV saturation stats | AI oversaturates with low variance; real photos have natural variation |
-| **Compression Artifacts** | DCT high-frequency block analysis | Real JPEGs have characteristic compression patterns |
-| **Repeating Patterns** | Autocorrelation peak analysis | Diffusion models sometimes tile textures in backgrounds |
+```bash
+# Train both models on CIFAKE dataset
+python v5training.py --data_root CIFAKE --model both --epochs 50 --calibrate
 
-### Scoring
-
-- Each check produces a **0–100 score** (100 = strongly real, 0 = strongly AI)
-- Weighted combination produces a final `combined_score`
-- `AI probability = 100 − combined_score`
-
----
-
-## API
-
-### POST `/api/detect`
-
-Upload an image for analysis.
-
-**Request:** `multipart/form-data` with field `image`
-
-**Response:**
-```json
-{
-  "verdict": {
-    "label": "Likely AI-Generated",
-    "icon": "⚠️",
-    "ai_probability": 72.4,
-    "real_probability": 27.6,
-    "confidence": "Medium",
-    "color": "#f97316",
-    "metadata_score": 30.0,
-    "visual_score": 38.5,
-    "combined_score": 27.6
-  },
-  "metadata": {
-    "score": 30.0,
-    "has_exif": false,
-    "exif_fields_count": 0,
-    "file_size_human": "2.1 MB",
-    "resolution": "1024 × 1024",
-    "camera": { "make": null, "model": null },
-    "gps": {},
-    "timestamps": {},
-    "missing_indicators": ["No EXIF data", "No camera make/model", "No GPS/location data"]
-  },
-  "visual": {
-    "score": 38.5,
-    "ai_indicators": ["Unnaturally smooth noise profile", "Glossy/waxy skin texture detected"],
-    "real_indicators": [],
-    "sub_scores": { ... }
-  },
-  "filename": "portrait.png",
-  "analyzed_at": "2026-02-23 14:30:22"
-}
+# Place the output files in checkpoints/
+# → checkpoints/spatial_model_best.pth
+# → checkpoints/frequency_model_best.pth
 ```
 
 ---
 
-## Notes
+## 🔐 Authentication
 
-- Images are **never stored permanently** — temp files are deleted immediately after analysis
-- No external AI API calls — all analysis runs locally
-- The HTML frontend uses **zero Django/Jinja template syntax** — it's pure HTML/CSS/JS
-- Works offline after initial install
+| Role | Access |
+|---|---|
+| `user` | Upload & analyze images |
+| `admin` / `superadmin` | Elevated access, requires Admin Key |
+
+The default admin key is `PIXELTRUTH_ADMIN_2025`.  
+**Change it in production** by setting the environment variable:
+
+```bash
+export ADMIN_SECRET_KEY=your_secret_key_here
+```
+
+---
+
+## ⚙️ Environment Variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `SECRET_KEY` | `pixel-truth-secret-prod-v3` | Flask session secret |
+| `ADMIN_SECRET_KEY` | `PIXELTRUTH_ADMIN_2025` | Admin registration key |
+| `SPATIAL_TEMPERATURE` | `1.0` | Raise to 1.5–2.0 if real images are misclassified |
+| `FREQ_TEMPERATURE` | `1.0` | Same for frequency model |
+| `REAL_THRESHOLD` | `0.5` | Lower to ~0.45 to bias towards REAL predictions |
+
+---
+
+## 📡 API Endpoints
+
+| Method | Endpoint | Description |
+|---|---|---|
+| `GET` | `/` | Landing page |
+| `GET` | `/home` | Detection dashboard |
+| `POST` | `/api/detect` | **Upload image for detection** |
+| `GET` | `/api/models` | Model info |
+| `GET` | `/health` | Health check |
+| `POST` | `/api/auth/register` | User registration |
+| `POST` | `/api/auth/login` | User login |
+| `POST` | `/api/auth/admin/register` | Admin registration |
+| `POST` | `/api/auth/admin/login` | Admin login |
+
+### Example — detect an image
+
+```bash
+curl -X POST http://localhost:5000/api/detect \
+  -F "image=@your_photo.jpg"
+```
+
+---
+
+## 🖼️ Supported Image Formats
+
+`PNG` · `JPG / JPEG` · `WEBP` · `BMP` · `TIFF`  
+**Max file size: 16 MB**
+
+---
+
+## 📦 Requirements
+
+- Python 3.9+
+- PyTorch 2.0+
+- 4 GB+ VRAM recommended for GPU inference (CPU also works)
+
+---
+
+## 📄 License
+
+MIT License — free to use, modify, and distribute.
+
+---
+
+<p align="center">Made with ⚡ by the PIXEL TRUTH Team</p>
