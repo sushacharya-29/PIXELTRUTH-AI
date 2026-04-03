@@ -4,7 +4,7 @@ from PIL import Image
 import argparse
 import os
 
-from v5_1oldfrequency import get_frequency_model_v5
+from v5_2frequency import get_frequency_model_v5
 
 
 # -------------------------------
