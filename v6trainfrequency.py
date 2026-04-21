@@ -7,6 +7,7 @@ import warnings
 from pathlib import Path
 from typing import Dict, List, Optional
 
+import math
 import numpy as np
 from tqdm import tqdm
 
@@ -24,7 +25,7 @@ from sklearn.metrics import (
     roc_auc_score, confusion_matrix
 )
 
-from v5_2frequency import get_frequency_model_v5
+from v6frequency import get_frequency_model_v6 as get_frequency_model_v5
 
 warnings.filterwarnings('ignore', category=UserWarning)
 os.environ["PYTORCH_CUDA_ALLOC_CONF"] = "expandable_segments:True"
@@ -141,32 +142,45 @@ class MultiSourceDataset(Dataset):
 # which was causing the model to effectively ignore the minority class.
 
 class FocalLoss(nn.Module):
+    """AsymmetricFocalLoss: harder focus on FAKE (gamma_fake=3.0) than REAL (gamma_real=2.0)."""
     def __init__(self, class_weights: Optional[torch.Tensor] = None,
-                 gamma: float = 1.0, label_smoothing: float = 0.05):
+                 gamma: float = 1.0, label_smoothing: float = 0.05,
+                 gamma_fake: float = 3.0, gamma_real: float = 2.0):
         super().__init__()
         self.register_buffer('class_weights', class_weights)
-        self.gamma = gamma
+        self.gamma_fake    = gamma_fake
+        self.gamma_real    = gamma_real
         self.label_smoothing = label_smoothing
 
     def forward(self, logits: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
         logits = logits.float()
-        n_cls = logits.size(1)
+        w = self.class_weights if self.class_weights is not None else None
+        ce = F.cross_entropy(logits, labels, weight=w,
+                             label_smoothing=self.label_smoothing, reduction='none')
+        pt = torch.exp(-ce)
+        gamma = torch.where(labels == 0,
+                            torch.full_like(ce, self.gamma_fake),
+                            torch.full_like(ce, self.gamma_real))
+        return (((1 - pt) ** gamma) * ce).mean()
 
-        # Label smoothing
-        smooth = torch.full_like(logits, self.label_smoothing / n_cls)
-        smooth.scatter_(1, labels.unsqueeze(1),
-                        1.0 - self.label_smoothing + self.label_smoothing / n_cls)
-        log_p = F.log_softmax(logits, dim=1)
-        base_loss = -(smooth * log_p).sum(dim=1)
 
-        # Focal modulation
-        pt = F.softmax(logits, dim=1).gather(1, labels.unsqueeze(1)).squeeze(1).clamp(1e-6, 1.0)
-        loss = ((1 - pt) ** self.gamma) * base_loss
+def cutmix_data(images, labels, alpha=0.3):
+    lam = float(np.random.beta(alpha, alpha))
+    B, C, H, W = images.shape
+    idx = torch.randperm(B, device=images.device)
 
-        if self.class_weights is not None:
-            loss = loss * self.class_weights[labels]
+    cx = int(np.random.uniform(0, W))
+    cy = int(np.random.uniform(0, H))
+    cut_w = int(W * math.sqrt(1 - lam))
+    cut_h = int(H * math.sqrt(1 - lam))
 
-        return loss.mean()
+    x1, x2 = max(cx - cut_w // 2, 0), min(cx + cut_w // 2, W)
+    y1, y2 = max(cy - cut_h // 2, 0), min(cy + cut_h // 2, H)
+
+    mixed = images.clone()
+    mixed[:, :, y1:y2, x1:x2] = images[idx, :, y1:y2, x1:x2]
+    lam = 1.0 - (x2 - x1) * (y2 - y1) / (W * H)
+    return mixed, labels, labels[idx], lam
 
 
 # ── Config ────────────────────────────────────────────────────────────────────
@@ -189,7 +203,7 @@ class FreqTrainConfig:
     no_resume: bool = False
     num_classes: int = 2
     dropout: float = 0.35
-    early_stop_patience: int = 15
+    early_stop_patience: int = 25
     # Gradient clip — tighter than spatial because freq signals are noisier
     grad_clip: float = 0.5
     num_workers: int = 4
@@ -304,7 +318,6 @@ def train_epoch(model, loader, criterion, optimizer, scaler,
                 device, config: FreqTrainConfig, epoch: int, base_lr: float) -> tuple:
     model.train()
 
-    # Linear warmup — scale from base_lr/10 to base_lr over warmup_epochs
     if epoch < config.warmup_epochs:
         lr_scale = 0.1 + 0.9 * (epoch + 1) / config.warmup_epochs
         for pg in optimizer.param_groups:
@@ -312,16 +325,18 @@ def train_epoch(model, loader, criterion, optimizer, scaler,
 
     total_loss = correct = total = 0
     consecutive_nan = 0
-    pbar = tqdm(loader, desc=f'Epoch {epoch + 1}', leave=False,
-                dynamic_ncols=True)
+    pbar = tqdm(loader, desc=f'Epoch {epoch + 1}', leave=False, dynamic_ncols=True)
 
     for images, labels in pbar:
         images = images.to(device, non_blocking=True)
         labels = labels.to(device, non_blocking=True)
 
-        # Mixup only 40 % of batches — keeps some clean signal
-        if np.random.rand() < 0.4:
+        r = np.random.rand()
+        if r < 0.35:
             images, la, lb, lam = mixup_data(images, labels, alpha=0.15, device=device)
+        elif r < 0.65:
+            images, la, lb, lam = cutmix_data(images, labels, alpha=0.3)
+            la, lb = la.to(device), lb.to(device)
         else:
             la, lb, lam = labels, labels, 1.0
 
@@ -340,7 +355,7 @@ def train_epoch(model, loader, criterion, optimizer, scaler,
             if consecutive_nan > 8 and scaler is not None:
                 scaler._scale.fill_(256.0)
                 consecutive_nan = 0
-                print(f'\n  [WARN] AMP scale reset (10 consecutive NaN)')
+                print(f'\n  [WARN] AMP scale reset')
             continue
         consecutive_nan = 0
 
@@ -422,10 +437,19 @@ def train(model, train_loader, val_loader, config: FreqTrainConfig, device: torc
                           gamma=1.0,
                           label_smoothing=config.label_smoothing)
 
-    optimizer = optim.AdamW(model.parameters(),
-                            lr=config.learning_rate,
-                            weight_decay=config.weight_decay,
-                            eps=1e-7)          # more numerically stable than 1e-8
+    optimizer = optim.AdamW([
+        {'params': list(model.srm_stream.parameters()) +
+                   list(model.dct_stream.parameters()) +
+                   list(model.haar_stream.parameters()) +
+                   list(model.stream_se.parameters()),
+         'lr': config.learning_rate,
+         'weight_decay': config.weight_decay},
+        {'params': list(model.cross_attn.parameters()) +
+                   list(model.stream_gate.parameters()) +
+                   list(model.classifier.parameters()),
+         'lr': config.learning_rate * 2.0,
+         'weight_decay': config.weight_decay},
+    ], eps=1e-7)
 
     # CosineAnnealingWarmRestarts gives periodic LR resets that help escape
     # the flat frequency-space loss landscape, unlike plain CosineAnnealingLR.
@@ -435,7 +459,7 @@ def train(model, train_loader, val_loader, config: FreqTrainConfig, device: torc
 
     scaler = torch.amp.GradScaler('cuda') if device.type == 'cuda' else None
 
-    print(f"\n{'='*60}\nTraining frequency_model_v5  [{device}]")
+    print(f"\n{'='*60}\nTraining FrequencyModelV6  [{device}]")
     start_epoch, history, best_acc, patience = load_checkpoint(
         model, optimizer, scheduler, scaler, config, device
     )
@@ -446,6 +470,9 @@ def train(model, train_loader, val_loader, config: FreqTrainConfig, device: torc
         return history, best_acc
 
     base_lr = config.learning_rate
+
+    # Restore base LRs after resume
+    _base_lrs = [config.learning_rate, config.learning_rate * 2.0]
 
     for epoch in range(start_epoch, config.num_epochs):
         t0 = time.time()
@@ -575,7 +602,7 @@ def main():
     os.makedirs(config.save_dir, exist_ok=True)
 
     print(f"\n{'='*60}")
-    print(f"Frequency Model Training  v5.2")
+    print(f"Frequency Model Training  v6.0")
     print(f"Device: {device} | Save: {config.save_dir}")
     print(f"Resume: {'DISABLED' if args.no_resume else 'AUTO'}")
     print(f"{'='*60}")

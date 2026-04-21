@@ -1,0 +1,1615 @@
+{
+  "records": [
+    {
+      "ts": "2026-04-17T11:11:57.375982",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.761,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4480301141738892,
+        "final_pooled": 7.800281047821045,
+        "cross_out": 42.589847564697266,
+        "mid_attn_entropy": 3.7647366523742676,
+        "final_attn_entropy": 3.889181137084961
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\807563_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T11:11:57.530496",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.8716,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.425062656402588,
+        "final_pooled": 7.883738994598389,
+        "cross_out": 49.766571044921875,
+        "mid_attn_entropy": 3.768587589263916,
+        "final_attn_entropy": 3.8895344734191895
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\0008-20_w400.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T11:11:57.684274",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.9184,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4308699369430542,
+        "final_pooled": 7.888556957244873,
+        "cross_out": 43.77724075317383,
+        "mid_attn_entropy": 3.776353359222412,
+        "final_attn_entropy": 3.8889434337615967
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1795181_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T11:11:57.690274",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.5194,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4308699369430542,
+        "final_pooled": 7.888556957244873,
+        "cross_out": 43.77724075317383,
+        "mid_attn_entropy": 3.776353359222412,
+        "final_attn_entropy": 3.8889434337615967
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\224139_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T11:11:57.833328",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.7331,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4533661603927612,
+        "final_pooled": 7.835312843322754,
+        "cross_out": 50.18715286254883,
+        "mid_attn_entropy": 3.7736358642578125,
+        "final_attn_entropy": 3.8893651962280273
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\0008-18_w800.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T11:11:57.996357",
+      "true": "FAKE",
+      "pred": "REAL",
+      "confidence": 0.78,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4061217308044434,
+        "final_pooled": 7.6626105308532715,
+        "cross_out": 41.04393768310547,
+        "mid_attn_entropy": 3.7798643112182617,
+        "final_attn_entropy": 3.88863205909729
+      },
+      "image_path": "STBDIFFUSION\\test\\FAKE\\images.jpg",
+      "cause_hint": "Anomaly stream blind \u2014 artifacts in unattended regions"
+    },
+    {
+      "ts": "2026-04-17T11:11:58.148152",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.8958,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4158778190612793,
+        "final_pooled": 7.810789108276367,
+        "cross_out": 51.3704833984375,
+        "mid_attn_entropy": 3.7760093212127686,
+        "final_attn_entropy": 3.888718605041504
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1691634_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T11:12:07.512853",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.8161,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4464733600616455,
+        "final_pooled": 7.8623785972595215,
+        "cross_out": 53.64855194091797,
+        "mid_attn_entropy": 3.7781758308410645,
+        "final_attn_entropy": 3.8884623050689697
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1824725_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T11:12:07.665955",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.7218,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4064141511917114,
+        "final_pooled": 7.976208209991455,
+        "cross_out": 49.847530364990234,
+        "mid_attn_entropy": 3.7719764709472656,
+        "final_attn_entropy": 3.8890938758850098
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1872880_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T11:12:07.666882",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.8911,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4064141511917114,
+        "final_pooled": 7.976208209991455,
+        "cross_out": 49.847530364990234,
+        "mid_attn_entropy": 3.7719764709472656,
+        "final_attn_entropy": 3.8890938758850098
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\915959_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T11:12:07.817371",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.767,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4393846988677979,
+        "final_pooled": 7.794492721557617,
+        "cross_out": 56.720184326171875,
+        "mid_attn_entropy": 3.7678685188293457,
+        "final_attn_entropy": 3.889104127883911
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\0008-15_w400.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T11:12:08.266265",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.864,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.441437005996704,
+        "final_pooled": 7.8002753257751465,
+        "cross_out": 44.3380126953125,
+        "mid_attn_entropy": 3.765503406524658,
+        "final_attn_entropy": 3.8892290592193604
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1698504_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T11:12:08.267304",
+      "true": "FAKE",
+      "pred": "REAL",
+      "confidence": 0.8909,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.441437005996704,
+        "final_pooled": 7.8002753257751465,
+        "cross_out": 44.3380126953125,
+        "mid_attn_entropy": 3.765503406524658,
+        "final_attn_entropy": 3.8892290592193604
+      },
+      "image_path": "STBDIFFUSION\\test\\FAKE\\images (38).jpg",
+      "cause_hint": "Anomaly stream blind \u2014 artifacts in unattended regions"
+    },
+    {
+      "ts": "2026-04-17T11:12:08.268265",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.6742,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.441437005996704,
+        "final_pooled": 7.8002753257751465,
+        "cross_out": 44.3380126953125,
+        "mid_attn_entropy": 3.765503406524658,
+        "final_attn_entropy": 3.8892290592193604
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1815513_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T11:12:08.270263",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.6784,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.441437005996704,
+        "final_pooled": 7.8002753257751465,
+        "cross_out": 44.3380126953125,
+        "mid_attn_entropy": 3.765503406524658,
+        "final_attn_entropy": 3.8892290592193604
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\807563_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T11:12:08.419731",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.8259,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4203121662139893,
+        "final_pooled": 7.8838701248168945,
+        "cross_out": 52.232566833496094,
+        "mid_attn_entropy": 3.7687759399414062,
+        "final_attn_entropy": 3.889585018157959
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\0008-20_w400.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T11:12:08.571686",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.9098,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.425790548324585,
+        "final_pooled": 7.888404369354248,
+        "cross_out": 45.08277893066406,
+        "mid_attn_entropy": 3.779061794281006,
+        "final_attn_entropy": 3.8890256881713867
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1795181_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T11:12:08.726793",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.6021,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4501953125,
+        "final_pooled": 7.835083484649658,
+        "cross_out": 52.529441833496094,
+        "mid_attn_entropy": 3.7726337909698486,
+        "final_attn_entropy": 3.8894267082214355
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\0008-18_w800.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T11:12:08.880766",
+      "true": "FAKE",
+      "pred": "REAL",
+      "confidence": 0.8144,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4019039869308472,
+        "final_pooled": 7.663037300109863,
+        "cross_out": 42.20494079589844,
+        "mid_attn_entropy": 3.7799906730651855,
+        "final_attn_entropy": 3.8886871337890625
+      },
+      "image_path": "STBDIFFUSION\\test\\FAKE\\images.jpg",
+      "cause_hint": "Anomaly stream blind \u2014 artifacts in unattended regions"
+    },
+    {
+      "ts": "2026-04-17T11:12:09.033307",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.8818,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.41029691696167,
+        "final_pooled": 7.810728073120117,
+        "cross_out": 53.16754913330078,
+        "mid_attn_entropy": 3.7771542072296143,
+        "final_attn_entropy": 3.8887712955474854
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1691634_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T11:12:17.966122",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.8612,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.452652931213379,
+        "final_pooled": 7.8611249923706055,
+        "cross_out": 53.209022521972656,
+        "mid_attn_entropy": 3.781501293182373,
+        "final_attn_entropy": 3.888566255569458
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1824725_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T11:12:18.115082",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.7999,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4137611389160156,
+        "final_pooled": 7.974603652954102,
+        "cross_out": 49.24208068847656,
+        "mid_attn_entropy": 3.7748823165893555,
+        "final_attn_entropy": 3.889176368713379
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1872880_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T11:12:18.115082",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.9016,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4137611389160156,
+        "final_pooled": 7.974603652954102,
+        "cross_out": 49.24208068847656,
+        "mid_attn_entropy": 3.7748823165893555,
+        "final_attn_entropy": 3.889176368713379
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\915959_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T11:12:18.273265",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.8636,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4473363161087036,
+        "final_pooled": 7.793262481689453,
+        "cross_out": 56.36296844482422,
+        "mid_attn_entropy": 3.7720770835876465,
+        "final_attn_entropy": 3.8891754150390625
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\0008-15_w400.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T11:12:18.736948",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.891,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4475748538970947,
+        "final_pooled": 7.798288345336914,
+        "cross_out": 44.23158264160156,
+        "mid_attn_entropy": 3.7695164680480957,
+        "final_attn_entropy": 3.889315605163574
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1698504_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T11:12:18.737952",
+      "true": "FAKE",
+      "pred": "REAL",
+      "confidence": 0.9028,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4475748538970947,
+        "final_pooled": 7.798288345336914,
+        "cross_out": 44.23158264160156,
+        "mid_attn_entropy": 3.7695164680480957,
+        "final_attn_entropy": 3.889315605163574
+      },
+      "image_path": "STBDIFFUSION\\test\\FAKE\\images (38).jpg",
+      "cause_hint": "Anomaly stream blind \u2014 artifacts in unattended regions"
+    },
+    {
+      "ts": "2026-04-17T11:12:18.740104",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.8324,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4475748538970947,
+        "final_pooled": 7.798288345336914,
+        "cross_out": 44.23158264160156,
+        "mid_attn_entropy": 3.7695164680480957,
+        "final_attn_entropy": 3.889315605163574
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1815513_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T11:12:18.740104",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.7972,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4475748538970947,
+        "final_pooled": 7.798288345336914,
+        "cross_out": 44.23158264160156,
+        "mid_attn_entropy": 3.7695164680480957,
+        "final_attn_entropy": 3.889315605163574
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\807563_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T11:12:18.892156",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.8791,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4256553649902344,
+        "final_pooled": 7.88248348236084,
+        "cross_out": 51.509124755859375,
+        "mid_attn_entropy": 3.7728071212768555,
+        "final_attn_entropy": 3.8896498680114746
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\0008-20_w400.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T11:12:19.043157",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.9187,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4303703308105469,
+        "final_pooled": 7.886808395385742,
+        "cross_out": 44.84314727783203,
+        "mid_attn_entropy": 3.78102970123291,
+        "final_attn_entropy": 3.8891119956970215
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1795181_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T11:12:19.047836",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.5176,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4303703308105469,
+        "final_pooled": 7.886808395385742,
+        "cross_out": 44.84314727783203,
+        "mid_attn_entropy": 3.78102970123291,
+        "final_attn_entropy": 3.8891119956970215
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\224139_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T11:12:19.194040",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.7687,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4542484283447266,
+        "final_pooled": 7.833418846130371,
+        "cross_out": 52.21464157104492,
+        "mid_attn_entropy": 3.7776124477386475,
+        "final_attn_entropy": 3.8895111083984375
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\0008-18_w800.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T11:12:19.348818",
+      "true": "FAKE",
+      "pred": "REAL",
+      "confidence": 0.8042,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4057128429412842,
+        "final_pooled": 7.661372661590576,
+        "cross_out": 42.26076889038086,
+        "mid_attn_entropy": 3.783203601837158,
+        "final_attn_entropy": 3.888772487640381
+      },
+      "image_path": "STBDIFFUSION\\test\\FAKE\\images.jpg",
+      "cause_hint": "Anomaly stream blind \u2014 artifacts in unattended regions"
+    },
+    {
+      "ts": "2026-04-17T11:12:19.505100",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.899,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4168932437896729,
+        "final_pooled": 7.809223651885986,
+        "cross_out": 52.564273834228516,
+        "mid_attn_entropy": 3.781526565551758,
+        "final_attn_entropy": 3.888871192932129
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1691634_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:00.455114",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.8733,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4157979488372803,
+        "final_pooled": 7.603125095367432,
+        "cross_out": 37.934234619140625,
+        "mid_attn_entropy": 3.783628463745117,
+        "final_attn_entropy": 3.8893918991088867
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1691634_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:00.535625",
+      "true": "FAKE",
+      "pred": "REAL",
+      "confidence": 0.6121,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.413289189338684,
+        "final_pooled": 7.935543060302734,
+        "cross_out": 53.713172912597656,
+        "mid_attn_entropy": 3.7862138748168945,
+        "final_attn_entropy": 3.8899502754211426
+      },
+      "image_path": "STBDIFFUSION\\test\\FAKE\\images (30).jpg",
+      "cause_hint": "Anomaly stream blind \u2014 artifacts in unattended regions"
+    },
+    {
+      "ts": "2026-04-17T13:12:00.610627",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.7439,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4703271389007568,
+        "final_pooled": 7.701635360717773,
+        "cross_out": 53.46118927001953,
+        "mid_attn_entropy": 3.7762160301208496,
+        "final_attn_entropy": 3.888925313949585
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1872880_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:00.727626",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.8864,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4591238498687744,
+        "final_pooled": 7.805638313293457,
+        "cross_out": 43.04235076904297,
+        "mid_attn_entropy": 3.7888481616973877,
+        "final_attn_entropy": 3.889097213745117
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\915959_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:00.803145",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.804,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4657845497131348,
+        "final_pooled": 7.886220455169678,
+        "cross_out": 31.42467498779297,
+        "mid_attn_entropy": 3.780457019805908,
+        "final_attn_entropy": 3.8890442848205566
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1824725_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:00.843142",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.7225,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4155843257904053,
+        "final_pooled": 7.7041144371032715,
+        "cross_out": 27.38255500793457,
+        "mid_attn_entropy": 3.7867703437805176,
+        "final_attn_entropy": 3.888906717300415
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\807563_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:01.338206",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.7517,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4459304809570312,
+        "final_pooled": 8.006858825683594,
+        "cross_out": 35.63684844970703,
+        "mid_attn_entropy": 3.760274887084961,
+        "final_attn_entropy": 3.888662099838257
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\download - 2026-03-30T220341.474.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:01.375207",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.8478,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4012213945388794,
+        "final_pooled": 7.750178813934326,
+        "cross_out": 35.46112060546875,
+        "mid_attn_entropy": 3.761369228363037,
+        "final_attn_entropy": 3.8896172046661377
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1698504_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:01.413206",
+      "true": "FAKE",
+      "pred": "REAL",
+      "confidence": 0.9041,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4411234855651855,
+        "final_pooled": 7.893549919128418,
+        "cross_out": 30.923778533935547,
+        "mid_attn_entropy": 3.7853875160217285,
+        "final_attn_entropy": 3.8904104232788086
+      },
+      "image_path": "STBDIFFUSION\\test\\FAKE\\images (38).jpg",
+      "cause_hint": "Anomaly stream blind \u2014 artifacts in unattended regions"
+    },
+    {
+      "ts": "2026-04-17T13:12:01.491206",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.7827,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4295636415481567,
+        "final_pooled": 7.580920219421387,
+        "cross_out": 45.12973403930664,
+        "mid_attn_entropy": 3.765108108520508,
+        "final_attn_entropy": 3.8896894454956055
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\0008-20_w400.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:01.644719",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.9032,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.405458688735962,
+        "final_pooled": 7.934878826141357,
+        "cross_out": 51.32172393798828,
+        "mid_attn_entropy": 3.792940139770508,
+        "final_attn_entropy": 3.8897061347961426
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1795181_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:01.986829",
+      "true": "FAKE",
+      "pred": "REAL",
+      "confidence": 0.8358,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4492790699005127,
+        "final_pooled": 7.706642150878906,
+        "cross_out": 43.56501388549805,
+        "mid_attn_entropy": 3.786581516265869,
+        "final_attn_entropy": 3.889538288116455
+      },
+      "image_path": "STBDIFFUSION\\test\\FAKE\\images.jpg",
+      "cause_hint": "Anomaly stream blind \u2014 artifacts in unattended regions"
+    },
+    {
+      "ts": "2026-04-17T13:12:12.666516",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.6977,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4604333639144897,
+        "final_pooled": 8.09945297241211,
+        "cross_out": 52.72307205200195,
+        "mid_attn_entropy": 3.7871484756469727,
+        "final_attn_entropy": 3.889652967453003
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1815513_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:12.894692",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.9134,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4149854183197021,
+        "final_pooled": 7.603286266326904,
+        "cross_out": 37.93760299682617,
+        "mid_attn_entropy": 3.789027690887451,
+        "final_attn_entropy": 3.889634370803833
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1691634_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:12.971212",
+      "true": "FAKE",
+      "pred": "REAL",
+      "confidence": 0.504,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4122035503387451,
+        "final_pooled": 7.935797214508057,
+        "cross_out": 52.68166732788086,
+        "mid_attn_entropy": 3.790452480316162,
+        "final_attn_entropy": 3.8901710510253906
+      },
+      "image_path": "STBDIFFUSION\\test\\FAKE\\images (30).jpg",
+      "cause_hint": "Anomaly stream blind \u2014 artifacts in unattended regions"
+    },
+    {
+      "ts": "2026-04-17T13:12:13.046214",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.7977,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4694571495056152,
+        "final_pooled": 7.698726177215576,
+        "cross_out": 53.071109771728516,
+        "mid_attn_entropy": 3.7803378105163574,
+        "final_attn_entropy": 3.8892040252685547
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1872880_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:13.161737",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.9185,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.45930814743042,
+        "final_pooled": 7.803371429443359,
+        "cross_out": 44.49742889404297,
+        "mid_attn_entropy": 3.7956886291503906,
+        "final_attn_entropy": 3.889324903488159
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\915959_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:13.240998",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.8746,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4658504724502563,
+        "final_pooled": 7.884525299072266,
+        "cross_out": 32.10371017456055,
+        "mid_attn_entropy": 3.7867918014526367,
+        "final_attn_entropy": 3.889395236968994
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1824725_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:13.279566",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.7435,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4109324216842651,
+        "final_pooled": 7.703365325927734,
+        "cross_out": 28.08907699584961,
+        "mid_attn_entropy": 3.7925899028778076,
+        "final_attn_entropy": 3.889216184616089
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\807563_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:13.582607",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.6629,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.3355960845947266,
+        "final_pooled": 8.052488327026367,
+        "cross_out": 68.94058227539062,
+        "mid_attn_entropy": 3.767183780670166,
+        "final_attn_entropy": 3.8862662315368652
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\0008-15_w400.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:13.811164",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.9061,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.3952269554138184,
+        "final_pooled": 7.749170780181885,
+        "cross_out": 36.0240478515625,
+        "mid_attn_entropy": 3.770777702331543,
+        "final_attn_entropy": 3.889726400375366
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1698504_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:13.849337",
+      "true": "FAKE",
+      "pred": "REAL",
+      "confidence": 0.9238,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4428763389587402,
+        "final_pooled": 7.8923563957214355,
+        "cross_out": 33.62293243408203,
+        "mid_attn_entropy": 3.7911386489868164,
+        "final_attn_entropy": 3.890580415725708
+      },
+      "image_path": "STBDIFFUSION\\test\\FAKE\\images (38).jpg",
+      "cause_hint": "Anomaly stream blind \u2014 artifacts in unattended regions"
+    },
+    {
+      "ts": "2026-04-17T13:12:13.926340",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.8718,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4305317401885986,
+        "final_pooled": 7.5798492431640625,
+        "cross_out": 46.954986572265625,
+        "mid_attn_entropy": 3.769399642944336,
+        "final_attn_entropy": 3.8898658752441406
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\0008-20_w400.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:14.079463",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.9318,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4021589756011963,
+        "final_pooled": 7.933372497558594,
+        "cross_out": 52.14820098876953,
+        "mid_attn_entropy": 3.797271490097046,
+        "final_attn_entropy": 3.8898940086364746
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1795181_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:14.268975",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.6373,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4406681060791016,
+        "final_pooled": 7.884489059448242,
+        "cross_out": 47.24074172973633,
+        "mid_attn_entropy": 3.774959087371826,
+        "final_attn_entropy": 3.8905489444732666
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\0008-18_w800.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:14.420571",
+      "true": "FAKE",
+      "pred": "REAL",
+      "confidence": 0.8393,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4460430145263672,
+        "final_pooled": 7.703936576843262,
+        "cross_out": 44.81278991699219,
+        "mid_attn_entropy": 3.794875144958496,
+        "final_attn_entropy": 3.8896684646606445
+      },
+      "image_path": "STBDIFFUSION\\test\\FAKE\\images.jpg",
+      "cause_hint": "Anomaly stream blind \u2014 artifacts in unattended regions"
+    },
+    {
+      "ts": "2026-04-17T13:12:24.931123",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.901,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4746137857437134,
+        "final_pooled": 8.098095893859863,
+        "cross_out": 52.444942474365234,
+        "mid_attn_entropy": 3.792527675628662,
+        "final_attn_entropy": 3.889857292175293
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1815513_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:25.162142",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.9131,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.422560691833496,
+        "final_pooled": 7.601308345794678,
+        "cross_out": 37.36629867553711,
+        "mid_attn_entropy": 3.7973556518554688,
+        "final_attn_entropy": 3.889777660369873
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1691634_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:25.315244",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.8402,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4871283769607544,
+        "final_pooled": 7.694309234619141,
+        "cross_out": 59.439388275146484,
+        "mid_attn_entropy": 3.7802391052246094,
+        "final_attn_entropy": 3.8893566131591797
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1872880_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:25.429791",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.9159,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.468954086303711,
+        "final_pooled": 7.798674583435059,
+        "cross_out": 46.11940002441406,
+        "mid_attn_entropy": 3.7972750663757324,
+        "final_attn_entropy": 3.8895914554595947
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\915959_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:25.506991",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.897,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4770729541778564,
+        "final_pooled": 7.880361557006836,
+        "cross_out": 33.76313018798828,
+        "mid_attn_entropy": 3.7942771911621094,
+        "final_attn_entropy": 3.8893280029296875
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1824725_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:25.545509",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.8555,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.417955756187439,
+        "final_pooled": 7.700715065002441,
+        "cross_out": 28.779985427856445,
+        "mid_attn_entropy": 3.7985830307006836,
+        "final_attn_entropy": 3.8894202709198
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\807563_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:25.849283",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.8463,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.3360681533813477,
+        "final_pooled": 8.046396255493164,
+        "cross_out": 67.47733306884766,
+        "mid_attn_entropy": 3.7804200649261475,
+        "final_attn_entropy": 3.8865549564361572
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\0008-15_w400.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:26.077894",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.9117,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4095442295074463,
+        "final_pooled": 7.746457099914551,
+        "cross_out": 37.248958587646484,
+        "mid_attn_entropy": 3.77321195602417,
+        "final_attn_entropy": 3.8897767066955566
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1698504_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:26.115413",
+      "true": "FAKE",
+      "pred": "REAL",
+      "confidence": 0.9142,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4536303281784058,
+        "final_pooled": 7.887931823730469,
+        "cross_out": 36.86857604980469,
+        "mid_attn_entropy": 3.8007242679595947,
+        "final_attn_entropy": 3.8907437324523926
+      },
+      "image_path": "STBDIFFUSION\\test\\FAKE\\images (38).jpg",
+      "cause_hint": "Anomaly stream blind \u2014 artifacts in unattended regions"
+    },
+    {
+      "ts": "2026-04-17T13:12:26.191412",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.9112,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4415717124938965,
+        "final_pooled": 7.576787948608398,
+        "cross_out": 46.0960693359375,
+        "mid_attn_entropy": 3.7796669006347656,
+        "final_attn_entropy": 3.889890670776367
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\0008-20_w400.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:26.348054",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.9323,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4044270515441895,
+        "final_pooled": 7.929194450378418,
+        "cross_out": 50.8939323425293,
+        "mid_attn_entropy": 3.804276466369629,
+        "final_attn_entropy": 3.8900537490844727
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1795181_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:26.464306",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.7871,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.451502799987793,
+        "final_pooled": 7.791974067687988,
+        "cross_out": 56.07795333862305,
+        "mid_attn_entropy": 3.792900562286377,
+        "final_attn_entropy": 3.8902039527893066
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\224139_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:26.541633",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.8712,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.436952829360962,
+        "final_pooled": 7.879413604736328,
+        "cross_out": 44.816375732421875,
+        "mid_attn_entropy": 3.7866759300231934,
+        "final_attn_entropy": 3.890650749206543
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\0008-18_w800.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:26.691156",
+      "true": "FAKE",
+      "pred": "REAL",
+      "confidence": 0.7701,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4556922912597656,
+        "final_pooled": 7.700930595397949,
+        "cross_out": 46.2528076171875,
+        "mid_attn_entropy": 3.7971858978271484,
+        "final_attn_entropy": 3.889796495437622
+      },
+      "image_path": "STBDIFFUSION\\test\\FAKE\\images.jpg",
+      "cause_hint": "Anomaly stream blind \u2014 artifacts in unattended regions"
+    },
+    {
+      "ts": "2026-04-17T13:12:37.179213",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.7953,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.468904733657837,
+        "final_pooled": 8.101922988891602,
+        "cross_out": 51.827728271484375,
+        "mid_attn_entropy": 3.7950541973114014,
+        "final_attn_entropy": 3.8900537490844727
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1815513_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:37.408132",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.8933,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.415360927581787,
+        "final_pooled": 7.604146957397461,
+        "cross_out": 37.411312103271484,
+        "mid_attn_entropy": 3.8001372814178467,
+        "final_attn_entropy": 3.889942169189453
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1691634_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:37.559644",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.7877,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4796152114868164,
+        "final_pooled": 7.698970794677734,
+        "cross_out": 49.86709976196289,
+        "mid_attn_entropy": 3.7883787155151367,
+        "final_attn_entropy": 3.8895020484924316
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1872880_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:37.672204",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.8722,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4664270877838135,
+        "final_pooled": 7.801940441131592,
+        "cross_out": 37.828487396240234,
+        "mid_attn_entropy": 3.801494598388672,
+        "final_attn_entropy": 3.889817714691162
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\915959_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:37.748799",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.8734,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.472280502319336,
+        "final_pooled": 7.882486343383789,
+        "cross_out": 31.943605422973633,
+        "mid_attn_entropy": 3.7965924739837646,
+        "final_attn_entropy": 3.8895835876464844
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1824725_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:37.786663",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.7337,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4072656631469727,
+        "final_pooled": 7.70588493347168,
+        "cross_out": 29.36405372619629,
+        "mid_attn_entropy": 3.8002538681030273,
+        "final_attn_entropy": 3.889740228652954
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\807563_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:38.092108",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.516,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.3334907293319702,
+        "final_pooled": 8.050896644592285,
+        "cross_out": 62.82588577270508,
+        "mid_attn_entropy": 3.783548593521118,
+        "final_attn_entropy": 3.886909246444702
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\0008-15_w400.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:38.327220",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.8786,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4015241861343384,
+        "final_pooled": 7.749370574951172,
+        "cross_out": 35.16103744506836,
+        "mid_attn_entropy": 3.7794651985168457,
+        "final_attn_entropy": 3.8900156021118164
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1698504_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:38.365221",
+      "true": "FAKE",
+      "pred": "REAL",
+      "confidence": 0.9007,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4510608911514282,
+        "final_pooled": 7.892856597900391,
+        "cross_out": 25.419755935668945,
+        "mid_attn_entropy": 3.801969051361084,
+        "final_attn_entropy": 3.890803575515747
+      },
+      "image_path": "STBDIFFUSION\\test\\FAKE\\images (38).jpg",
+      "cause_hint": "Anomaly stream blind \u2014 artifacts in unattended regions"
+    },
+    {
+      "ts": "2026-04-17T13:12:38.439534",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.8795,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.430625081062317,
+        "final_pooled": 7.579563617706299,
+        "cross_out": 40.59471893310547,
+        "mid_attn_entropy": 3.785982847213745,
+        "final_attn_entropy": 3.8901240825653076
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\0008-20_w400.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:38.591522",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.918,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4010159969329834,
+        "final_pooled": 7.93265962600708,
+        "cross_out": 51.54716491699219,
+        "mid_attn_entropy": 3.8073153495788574,
+        "final_attn_entropy": 3.89018177986145
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1795181_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:38.781208",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.7775,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4360954761505127,
+        "final_pooled": 7.884666442871094,
+        "cross_out": 46.209144592285156,
+        "mid_attn_entropy": 3.788088798522949,
+        "final_attn_entropy": 3.8907270431518555
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\0008-18_w800.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:38.931950",
+      "true": "FAKE",
+      "pred": "REAL",
+      "confidence": 0.7765,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4514933824539185,
+        "final_pooled": 7.705134391784668,
+        "cross_out": 35.791072845458984,
+        "mid_attn_entropy": 3.803377866744995,
+        "final_attn_entropy": 3.889986753463745
+      },
+      "image_path": "STBDIFFUSION\\test\\FAKE\\images.jpg",
+      "cause_hint": "Anomaly stream blind \u2014 artifacts in unattended regions"
+    },
+    {
+      "ts": "2026-04-17T13:12:49.412683",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.6901,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.458566665649414,
+        "final_pooled": 8.102790832519531,
+        "cross_out": 52.86273193359375,
+        "mid_attn_entropy": 3.7973546981811523,
+        "final_attn_entropy": 3.8901779651641846
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1815513_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:49.640207",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.8959,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4089510440826416,
+        "final_pooled": 7.603178024291992,
+        "cross_out": 37.77999496459961,
+        "mid_attn_entropy": 3.801848888397217,
+        "final_attn_entropy": 3.890214204788208
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1691634_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:49.792354",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.7898,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4688389301300049,
+        "final_pooled": 7.695940017700195,
+        "cross_out": 51.878089904785156,
+        "mid_attn_entropy": 3.7933287620544434,
+        "final_attn_entropy": 3.8896899223327637
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1872880_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:49.909530",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.8837,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4622783660888672,
+        "final_pooled": 7.802237033843994,
+        "cross_out": 37.95094680786133,
+        "mid_attn_entropy": 3.806008815765381,
+        "final_attn_entropy": 3.88997745513916
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\915959_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:49.986042",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.8789,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4638798236846924,
+        "final_pooled": 7.882304668426514,
+        "cross_out": 33.15110397338867,
+        "mid_attn_entropy": 3.7992734909057617,
+        "final_attn_entropy": 3.8898391723632812
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1824725_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:50.024763",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.7938,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.401759386062622,
+        "final_pooled": 7.704018592834473,
+        "cross_out": 30.527742385864258,
+        "mid_attn_entropy": 3.799652576446533,
+        "final_attn_entropy": 3.889796733856201
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\807563_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:50.329605",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.7073,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.330979347229004,
+        "final_pooled": 8.047243118286133,
+        "cross_out": 63.8241081237793,
+        "mid_attn_entropy": 3.7821648120880127,
+        "final_attn_entropy": 3.8876612186431885
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\0008-15_w400.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:50.559325",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.8927,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.3873417377471924,
+        "final_pooled": 7.747366905212402,
+        "cross_out": 36.43474578857422,
+        "mid_attn_entropy": 3.7878763675689697,
+        "final_attn_entropy": 3.8902244567871094
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1698504_7068_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:50.598320",
+      "true": "FAKE",
+      "pred": "REAL",
+      "confidence": 0.9185,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4470807313919067,
+        "final_pooled": 7.889359474182129,
+        "cross_out": 26.020286560058594,
+        "mid_attn_entropy": 3.804619312286377,
+        "final_attn_entropy": 3.89090633392334
+      },
+      "image_path": "STBDIFFUSION\\test\\FAKE\\images (38).jpg",
+      "cause_hint": "Anomaly stream blind \u2014 artifacts in unattended regions"
+    },
+    {
+      "ts": "2026-04-17T13:12:50.676389",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.8847,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4182360172271729,
+        "final_pooled": 7.577069282531738,
+        "cross_out": 41.738304138183594,
+        "mid_attn_entropy": 3.789351463317871,
+        "final_attn_entropy": 3.8903133869171143
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\0008-20_w400.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:50.830531",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.9266,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.3957085609436035,
+        "final_pooled": 7.92910623550415,
+        "cross_out": 53.057373046875,
+        "mid_attn_entropy": 3.810305595397949,
+        "final_attn_entropy": 3.8902621269226074
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\1795181_masonry_600.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:51.020730",
+      "true": "REAL",
+      "pred": "FAKE",
+      "confidence": 0.7354,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4373602867126465,
+        "final_pooled": 7.88166618347168,
+        "cross_out": 47.79587936401367,
+        "mid_attn_entropy": 3.7892518043518066,
+        "final_attn_entropy": 3.89089298248291
+      },
+      "image_path": "STBDIFFUSION\\test\\REAL\\0008-18_w800.jpg",
+      "cause_hint": "Anomaly stream false alarm \u2014 CLS attended to innocent region"
+    },
+    {
+      "ts": "2026-04-17T13:12:51.174115",
+      "true": "FAKE",
+      "pred": "REAL",
+      "confidence": 0.8306,
+      "dominant_stream": "cross_out",
+      "stream_norms": {
+        "mid_pooled": 1.4415465593338013,
+        "final_pooled": 7.702852249145508,
+        "cross_out": 36.32738494873047,
+        "mid_attn_entropy": 3.8099234104156494,
+        "final_attn_entropy": 3.8900909423828125
+      },
+      "image_path": "STBDIFFUSION\\test\\FAKE\\images.jpg",
+      "cause_hint": "Anomaly stream blind \u2014 artifacts in unattended regions"
+    }
+  ],
+  "summary": {
+    "total_errors": 166,
+    "real_as_fake": 54,
+    "fake_as_real": 12,
+    "avg_conf_real_err": 0.8307,
+    "avg_conf_fake_err": 0.8108,
+    "top_error_patterns": {
+      "REAL_as_FAKE_cross_out": 54,
+      "FAKE_as_REAL_cross_out": 12
+    }
+  }
+}

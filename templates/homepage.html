@@ -1,1219 +1,170 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1.0" />
-<title>PIXEL TRUTH — AI Forensic Detection System</title>
-<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Space+Mono:wght@400;700&family=Rajdhani:wght@400;600;700&display=swap" rel="stylesheet">
-<style>
-:root {
-  --bg:       #080a0c;
-  --bg2:      #0f1318;
-  --bg3:      #141920;
-  --border:   #1e2830;
-  --border2:  #253040;
-  --text:     #c8d8e8;
-  --muted:    #5a7080;
-  --accent:   #00d4ff;
-  --accent2:  #ff3c6e;
-  --accent3:  #39ff8a;
-  --warn:     #ffb300;
-}
-
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-
-html { scroll-behavior: smooth; }
-
-body {
-  background: var(--bg);
-  color: var(--text);
-  font-family: 'Rajdhani', sans-serif;
-  overflow-x: hidden;
-  cursor: crosshair;
-}
-
-/* ─── SCAN LINE OVERLAY ─── */
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: repeating-linear-gradient(
-    0deg,
-    transparent,
-    transparent 2px,
-    rgba(0,212,255,0.012) 2px,
-    rgba(0,212,255,0.012) 4px
-  );
-  pointer-events: none;
-  z-index: 9999;
-}
-
-/* ─── NOISE GRAIN ─── */
-body::after {
-  content: '';
-  position: fixed;
-  inset: -200%;
-  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
-  opacity: 0.35;
-  pointer-events: none;
-  z-index: 9998;
-  animation: grain 0.4s steps(1) infinite;
-}
-@keyframes grain {
-  0%  { transform: translate(0,0); }
-  20% { transform: translate(-3%,-5%); }
-  40% { transform: translate(-8%, 3%); }
-  60% { transform: translate(5%,-2%); }
-  80% { transform: translate(-4%, 6%); }
-  100%{ transform: translate(4%,-4%); }
-}
-
-/* ─── NAV ─── */
-nav {
-  position: fixed;
-  top: 0; left: 0; right: 0;
-  z-index: 100;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 40px;
-  height: 60px;
-  border-bottom: 1px solid var(--border);
-  background: rgba(8,10,12,0.92);
-  backdrop-filter: blur(12px);
-}
-
-.nav-logo {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 1.6rem;
-  letter-spacing: 4px;
-  color: var(--accent);
-  text-shadow: 0 0 20px rgba(0,212,255,0.5);
-  text-decoration: none;
-}
-.nav-logo span { color: var(--accent2); }
-
-.nav-links {
-  display: flex;
-  gap: 32px;
-  list-style: none;
-}
-.nav-links a {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.7rem;
-  color: var(--muted);
-  text-decoration: none;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  transition: color 0.2s;
-  position: relative;
-}
-.nav-links a::after {
-  content: '';
-  position: absolute;
-  bottom: -4px; left: 0;
-  width: 0; height: 1px;
-  background: var(--accent);
-  transition: width 0.3s;
-}
-.nav-links a:hover { color: var(--accent); }
-.nav-links a:hover::after { width: 100%; }
-
-.nav-badge {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.6rem;
-  letter-spacing: 2px;
-  color: var(--accent3);
-  border: 1px solid var(--accent3);
-  padding: 4px 10px;
-  text-transform: uppercase;
-  animation: pulse-border 2s ease-in-out infinite;
-}
-@keyframes pulse-border {
-  0%,100% { box-shadow: 0 0 0 rgba(57,255,138,0); }
-  50%      { box-shadow: 0 0 12px rgba(57,255,138,0.3); }
-}
-
-/* ─── HERO ─── */
-.hero {
-  min-height: 100vh;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  position: relative;
-  overflow: hidden;
-  padding-top: 60px;
-}
-
-/* Grid background */
-.hero-grid {
-  position: absolute;
-  inset: 0;
-  background-image:
-    linear-gradient(rgba(0,212,255,0.04) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(0,212,255,0.04) 1px, transparent 1px);
-  background-size: 60px 60px;
-  animation: grid-drift 20s linear infinite;
-}
-@keyframes grid-drift {
-  from { transform: translateY(0); }
-  to   { transform: translateY(60px); }
-}
-
-/* Corner radars */
-.radar {
-  position: absolute;
-  width: 500px; height: 500px;
-  border-radius: 50%;
-  border: 1px solid rgba(0,212,255,0.08);
-  animation: radar-spin 8s linear infinite;
-  pointer-events: none;
-}
-.radar::before {
-  content: '';
-  position: absolute;
-  inset: 20px;
-  border-radius: 50%;
-  border: 1px solid rgba(0,212,255,0.05);
-}
-.radar::after {
-  content: '';
-  position: absolute;
-  inset: 40px;
-  border-radius: 50%;
-  border: 1px solid rgba(0,212,255,0.03);
-}
-.radar-1 { top: -200px; right: -200px; }
-.radar-2 { bottom: -250px; left: -250px; animation-direction: reverse; animation-duration: 12s; }
-
-@keyframes radar-spin {
-  from { transform: rotate(0deg); }
-  to   { transform: rotate(360deg); }
-}
-
-.hero-content {
-  position: relative;
-  z-index: 2;
-  text-align: center;
-  padding: 0 24px;
-  max-width: 900px;
-}
-
-.hero-eyebrow {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.65rem;
-  letter-spacing: 6px;
-  color: var(--accent);
-  text-transform: uppercase;
-  margin-bottom: 20px;
-  opacity: 0;
-  animation: fade-up 0.8s forwards 0.3s;
-}
-
-.hero-title {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(4rem, 12vw, 10rem);
-  line-height: 0.9;
-  letter-spacing: 8px;
-  color: #e8f4ff;
-  margin-bottom: 8px;
-  opacity: 0;
-  animation: fade-up 0.8s forwards 0.5s;
-  text-shadow: 0 0 60px rgba(0,212,255,0.15);
-}
-
-.hero-title .accent-word {
-  color: var(--accent);
-  display: block;
-  text-shadow: 0 0 40px rgba(0,212,255,0.5), 0 0 80px rgba(0,212,255,0.2);
-  position: relative;
-}
-
-/* Glitch effect */
-.hero-title .accent-word::before,
-.hero-title .accent-word::after {
-  content: attr(data-text);
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  overflow: hidden;
-}
-.hero-title .accent-word::before {
-  color: var(--accent2);
-  clip-path: polygon(0 0, 100% 0, 100% 35%, 0 35%);
-  animation: glitch-top 4s steps(1) infinite;
-  text-shadow: -2px 0 var(--accent2);
-}
-.hero-title .accent-word::after {
-  color: var(--accent3);
-  clip-path: polygon(0 65%, 100% 65%, 100% 100%, 0 100%);
-  animation: glitch-bot 4s steps(1) infinite;
-  text-shadow: 2px 0 var(--accent3);
-}
-@keyframes glitch-top {
-  0%,90%,100% { transform: translate(0); opacity: 0; }
-  92%          { transform: translate(-3px, -1px); opacity: 1; }
-  94%          { transform: translate(3px, 0px); opacity: 1; }
-  96%          { transform: translate(0); opacity: 0; }
-}
-@keyframes glitch-bot {
-  0%,88%,100% { transform: translate(0); opacity: 0; }
-  90%          { transform: translate(3px, 1px); opacity: 1; }
-  93%          { transform: translate(-2px, 0); opacity: 1; }
-  95%          { transform: translate(0); opacity: 0; }
-}
-
-.hero-sub {
-  font-size: 1.1rem;
-  color: var(--muted);
-  letter-spacing: 1px;
-  max-width: 520px;
-  margin: 24px auto 40px;
-  line-height: 1.6;
-  opacity: 0;
-  animation: fade-up 0.8s forwards 0.7s;
-}
-
-.hero-ctas {
-  display: flex;
-  gap: 16px;
-  justify-content: center;
-  flex-wrap: wrap;
-  opacity: 0;
-  animation: fade-up 0.8s forwards 0.9s;
-}
-
-.btn-primary {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.75rem;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  background: var(--accent);
-  color: #000;
-  border: none;
-  padding: 14px 36px;
-  cursor: pointer;
-  font-weight: 700;
-  position: relative;
-  overflow: hidden;
-  text-decoration: none;
-  display: inline-block;
-  clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
-  transition: transform 0.2s;
-}
-.btn-primary::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: #fff;
-  transform: translateX(-100%);
-  transition: transform 0.3s;
-}
-.btn-primary:hover { transform: translateY(-2px); }
-.btn-primary:hover::before { transform: translateX(0); mix-blend-mode: overlay; }
-
-.btn-outline {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.75rem;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  background: transparent;
-  color: var(--text);
-  border: 1px solid var(--border2);
-  padding: 14px 36px;
-  cursor: pointer;
-  text-decoration: none;
-  display: inline-block;
-  clip-path: polygon(8px 0%, 100% 0%, calc(100% - 8px) 100%, 0% 100%);
-  transition: border-color 0.2s, color 0.2s, transform 0.2s;
-}
-.btn-outline:hover {
-  border-color: var(--accent);
-  color: var(--accent);
-  transform: translateY(-2px);
-}
-
-/* Verdict display */
-.verdict-demo {
-  position: absolute;
-  bottom: 40px;
-  left: 50%;
-  transform: translateX(-50%);
-  display: flex;
-  gap: 40px;
-  opacity: 0;
-  animation: fade-up 0.8s forwards 1.2s;
-}
-.verdict-stat {
-  text-align: center;
-}
-.verdict-stat .num {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 2.5rem;
-  letter-spacing: 3px;
-  line-height: 1;
-}
-.verdict-stat .num.real { color: var(--accent3); }
-.verdict-stat .num.fake { color: var(--accent2); }
-.verdict-stat .num.acc  { color: var(--accent); }
-.verdict-stat .label {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.55rem;
-  letter-spacing: 3px;
-  color: var(--muted);
-  margin-top: 4px;
-}
-.verdict-divider {
-  width: 1px;
-  background: var(--border);
-  align-self: stretch;
-}
-
-@keyframes fade-up {
-  from { opacity: 0; transform: translateY(20px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-
-/* ─── UPLOAD SECTION ─── */
-.section {
-  padding: 100px 40px;
-  max-width: 1200px;
-  margin: 0 auto;
-}
-
-.section-label {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.6rem;
-  letter-spacing: 6px;
-  color: var(--accent);
-  text-transform: uppercase;
-  margin-bottom: 12px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-.section-label::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: var(--border);
-}
-
-.section-title {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: clamp(2rem, 5vw, 3.5rem);
-  letter-spacing: 4px;
-  color: #e8f4ff;
-  margin-bottom: 16px;
-}
-
-/* Upload zone */
-.upload-zone {
-  border: 1px dashed var(--border2);
-  background: var(--bg2);
-  padding: 80px 40px;
-  text-align: center;
-  position: relative;
-  transition: border-color 0.3s, background 0.3s;
-  cursor: pointer;
-  overflow: hidden;
-}
-.upload-zone::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(0,212,255,0.03) 0%, transparent 60%);
-  pointer-events: none;
-}
-.upload-zone:hover {
-  border-color: var(--accent);
-  background: rgba(0,212,255,0.03);
-}
-.upload-zone:hover .upload-icon { color: var(--accent); transform: scale(1.1) translateY(-4px); }
-
-.upload-icon {
-  font-size: 3rem;
-  color: var(--muted);
-  display: block;
-  margin-bottom: 20px;
-  transition: color 0.3s, transform 0.3s;
-}
-.upload-title {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 1.8rem;
-  letter-spacing: 3px;
-  margin-bottom: 8px;
-}
-.upload-sub {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.65rem;
-  color: var(--muted);
-  letter-spacing: 2px;
-}
-
-/* Corner decorations */
-.upload-zone .corner {
-  position: absolute;
-  width: 20px; height: 20px;
-  border-color: var(--accent);
-  border-style: solid;
-}
-.corner.tl { top: 12px; left: 12px; border-width: 1px 0 0 1px; }
-.corner.tr { top: 12px; right: 12px; border-width: 1px 1px 0 0; }
-.corner.bl { bottom: 12px; left: 12px; border-width: 0 0 1px 1px; }
-.corner.br { bottom: 12px; right: 12px; border-width: 0 1px 1px 0; }
-
-/* ─── HOW IT WORKS ─── */
-.how-section {
-  background: var(--bg2);
-  border-top: 1px solid var(--border);
-  border-bottom: 1px solid var(--border);
-}
-
-.steps-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 0;
-}
-
-.step {
-  padding: 48px 36px;
-  border-right: 1px solid var(--border);
-  position: relative;
-  overflow: hidden;
-  transition: background 0.3s;
-}
-.step:last-child { border-right: none; }
-.step::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-  background: transparent;
-  transition: background 0.3s;
-}
-.step:hover { background: rgba(0,212,255,0.02); }
-.step:hover::before { background: var(--accent); }
-
-.step-num {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 5rem;
-  line-height: 1;
-  color: rgba(0,212,255,0.06);
-  position: absolute;
-  top: 20px; right: 20px;
-  letter-spacing: 2px;
-  transition: color 0.3s;
-}
-.step:hover .step-num { color: rgba(0,212,255,0.12); }
-
-.step-icon {
-  width: 40px; height: 40px;
-  border: 1px solid var(--border2);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-bottom: 20px;
-  font-size: 1.1rem;
-  position: relative;
-  z-index: 1;
-  transition: border-color 0.3s;
-}
-.step:hover .step-icon { border-color: var(--accent); }
-
-.step-title {
-  font-family: 'Rajdhani', sans-serif;
-  font-weight: 700;
-  font-size: 1.1rem;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-  margin-bottom: 10px;
-  position: relative; z-index: 1;
-}
-.step-desc {
-  font-size: 0.9rem;
-  color: var(--muted);
-  line-height: 1.6;
-  position: relative; z-index: 1;
-}
-
-/* ─── MODELS SECTION ─── */
-.models-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 1px;
-  background: var(--border);
-  border: 1px solid var(--border);
-  margin-top: 48px;
-}
-
-.model-card {
-  background: var(--bg2);
-  padding: 36px;
-  position: relative;
-  overflow: hidden;
-  transition: background 0.3s;
-}
-.model-card::after {
-  content: '';
-  position: absolute;
-  bottom: 0; left: 0; right: 0;
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--accent), transparent);
-  transform: scaleX(0);
-  transition: transform 0.4s;
-}
-.model-card:hover { background: var(--bg3); }
-.model-card:hover::after { transform: scaleX(1); }
-
-.model-tag {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.55rem;
-  letter-spacing: 3px;
-  text-transform: uppercase;
-  padding: 4px 10px;
-  border: 1px solid;
-  display: inline-block;
-  margin-bottom: 20px;
-}
-.model-tag.primary  { color: var(--accent);  border-color: var(--accent);  background: rgba(0,212,255,0.05); }
-.model-tag.secondary{ color: var(--warn);    border-color: var(--warn);    background: rgba(255,179,0,0.05); }
-.model-tag.tertiary { color: var(--accent2); border-color: var(--accent2); background: rgba(255,60,110,0.05); }
-
-.model-name {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 1.6rem;
-  letter-spacing: 3px;
-  margin-bottom: 10px;
-  color: #e8f4ff;
-}
-.model-desc {
-  font-size: 0.9rem;
-  color: var(--muted);
-  line-height: 1.6;
-  margin-bottom: 24px;
-}
-
-.model-acc {
-  display: flex;
-  align-items: baseline;
-  gap: 6px;
-}
-.model-acc .acc-val {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 2.2rem;
-  letter-spacing: 2px;
-  color: var(--accent3);
-}
-.model-acc .acc-label {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.6rem;
-  color: var(--muted);
-  letter-spacing: 2px;
-}
-
-.acc-bar-wrap {
-  height: 3px;
-  background: var(--border);
-  margin-top: 12px;
-  position: relative;
-  overflow: hidden;
-}
-.acc-bar {
-  height: 100%;
-  background: linear-gradient(90deg, var(--accent3), var(--accent));
-  animation: bar-fill 1.5s ease-out forwards;
-  transform-origin: left;
-}
-@keyframes bar-fill {
-  from { transform: scaleX(0); }
-  to   { transform: scaleX(1); }
-}
-
-/* ─── VERDICT SECTION ─── */
-.verdict-section {
-  padding: 100px 40px;
-  background: var(--bg);
-  position: relative;
-  overflow: hidden;
-}
-.verdict-section::before {
-  content: '';
-  position: absolute;
-  top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  width: 800px; height: 800px;
-  border-radius: 50%;
-  background: radial-gradient(circle, rgba(0,212,255,0.04) 0%, transparent 70%);
-  pointer-events: none;
-}
-
-.verdict-cards {
-  display: flex;
-  gap: 24px;
-  justify-content: center;
-  flex-wrap: wrap;
-  max-width: 800px;
-  margin: 60px auto 0;
-}
-
-.verdict-card {
-  flex: 1;
-  min-width: 220px;
-  max-width: 320px;
-  border: 1px solid var(--border);
-  background: var(--bg2);
-  padding: 40px 32px;
-  text-align: center;
-  position: relative;
-  overflow: hidden;
-}
-
-.verdict-card.real {
-  border-color: rgba(57,255,138,0.3);
-}
-.verdict-card.real::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(57,255,138,0.05), transparent);
-}
-
-.verdict-card.fake {
-  border-color: rgba(255,60,110,0.3);
-}
-.verdict-card.fake::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  background: linear-gradient(135deg, rgba(255,60,110,0.05), transparent);
-}
-
-.verdict-icon {
-  font-size: 2.5rem;
-  margin-bottom: 16px;
-  position: relative;
-  z-index: 1;
-}
-
-.verdict-label {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 2rem;
-  letter-spacing: 6px;
-  position: relative;
-  z-index: 1;
-}
-.real .verdict-label { color: var(--accent3); }
-.fake .verdict-label { color: var(--accent2); }
-
-.verdict-sublabel {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.6rem;
-  color: var(--muted);
-  letter-spacing: 2px;
-  margin-top: 8px;
-  position: relative;
-  z-index: 1;
-}
-
-/* Confidence bar */
-.conf-row {
-  margin-top: 20px;
-  position: relative;
-  z-index: 1;
-}
-.conf-label {
-  display: flex;
-  justify-content: space-between;
-  font-family: 'Space Mono', monospace;
-  font-size: 0.55rem;
-  color: var(--muted);
-  letter-spacing: 1px;
-  margin-bottom: 6px;
-}
-.conf-bar-bg {
-  height: 4px;
-  background: var(--border);
-  border-radius: 0;
-  overflow: hidden;
-}
-.conf-bar-fill {
-  height: 100%;
-  border-radius: 0;
-  transition: width 1s ease-out;
-}
-.real .conf-bar-fill { background: var(--accent3); width: 94%; }
-.fake .conf-bar-fill { background: var(--accent2); width: 87%; }
-
-/* ─── FOOTER ─── */
-footer {
-  border-top: 1px solid var(--border);
-  padding: 40px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  flex-wrap: gap;
-  gap: 20px;
-}
-
-.footer-logo {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 1.2rem;
-  letter-spacing: 4px;
-  color: var(--accent);
-  text-shadow: 0 0 20px rgba(0,212,255,0.4);
-}
-.footer-logo span { color: var(--accent2); }
-
-.footer-copy {
-  font-family: 'Space Mono', monospace;
-  font-size: 0.6rem;
-  color: var(--muted);
-  letter-spacing: 2px;
-  text-align: center;
-}
-
-.footer-status {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  font-family: 'Space Mono', monospace;
-  font-size: 0.6rem;
-  color: var(--accent3);
-  letter-spacing: 2px;
-}
-.status-dot {
-  width: 6px; height: 6px;
-  border-radius: 50%;
-  background: var(--accent3);
-  animation: status-blink 1.5s ease-in-out infinite;
-}
-@keyframes status-blink {
-  0%,100% { opacity: 1; }
-  50%      { opacity: 0.3; }
-}
-
-/* ─── SCROLLBAR ─── */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--bg); }
-::-webkit-scrollbar-thumb { background: var(--border2); }
-::-webkit-scrollbar-thumb:hover { background: var(--accent); }
-
-/* ─── CURSOR TRACKER ─── */
-#cursor-trail {
-  position: fixed;
-  width: 8px; height: 8px;
-  border: 1px solid rgba(0,212,255,0.5);
-  border-radius: 50%;
-  pointer-events: none;
-  z-index: 10000;
-  transform: translate(-50%,-50%);
-  transition: transform 0.05s;
-  mix-blend-mode: screen;
-}
-</style>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>PIXEL TRUTH — Dashboard</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='shared.css') }}"/>
+<link rel="stylesheet" href="{{ url_for('static', filename='homepage.css') }}"/>
 </head>
-<body>
+<body class="homepage">
+<div id="cursor-dot"></div>
 
-<div id="cursor-trail"></div>
-
-<!-- NAV -->
-<nav>
-  <a class="nav-logo" href="/"><span>PIXEL</span> TRUTH</a>
+<nav class="nav">
+  <a href="/" class="nav-logo"><span>PT</span></a>
+  <div class="nav-wordmark">PIXEL<em>TRUTH</em></div>
   <ul class="nav-links">
-    <li><a href="#detect">Detect</a></li>
-    <li><a href="#how">How It Works</a></li>
-    <li><a href="#models">Models</a></li>
-    <li><a href="#verdict">Verdicts</a></li>
+    <li><a href="/landing">Home</a></li>
+    <li><a href="/home" class="active">Dashboard</a></li>
   </ul>
-  <div style="display:flex;align-items:center;gap:16px;">
-    <!-- Shown when not logged in: back to landing portal -->
-    <div id="nav-auth-links" style="display:flex;gap:14px;align-items:center;">
-      <a href="/" style="font-family:'Space Mono',monospace;font-size:0.6rem;color:var(--muted);text-decoration:none;letter-spacing:2px;text-transform:uppercase;transition:color 0.2s;" onmouseover="this.style.color='var(--accent)'" onmouseout="this.style.color='var(--muted)'">← Portal</a>
+  <div class="nav-right">
+    <div id="nav-auth-links" style="display:flex;gap:16px;align-items:center;">
+      <a href="/login" class="nav-link-btn">LOGIN</a>
+      <a href="/register" class="nav-link-btn primary">REGISTER</a>
     </div>
-    <!-- Shown when logged in: username + logout -->
-    <div id="nav-user-info" style="display:none;align-items:center;gap:10px;">
-      <span id="nav-username" style="font-family:'Space Mono',monospace;font-size:0.6rem;color:var(--accent3);letter-spacing:2px;text-transform:uppercase;"></span>
-      <button onclick="handleLogout()" style="font-family:'Space Mono',monospace;font-size:0.6rem;color:var(--muted);background:none;border:1px solid var(--border2);padding:4px 10px;cursor:pointer;letter-spacing:2px;text-transform:uppercase;transition:color 0.2s;" onmouseover="this.style.color='var(--accent2)'" onmouseout="this.style.color='var(--muted)'">Logout</button>
+    <div id="nav-user-info" style="display:none;align-items:center;gap:16px;">
+      <span id="nav-username" class="nav-username"></span>
+      <button onclick="handleLogout()" class="nav-link-btn">LOGOUT</button>
     </div>
-    <div class="nav-badge">● SYSTEM ONLINE</div>
   </div>
 </nav>
 
-<!-- HERO -->
-<section class="hero" id="home">
-  <div class="hero-grid"></div>
-  <div class="radar radar-1"></div>
-  <div class="radar radar-2"></div>
-
-  <div class="hero-content">
-    <div class="hero-eyebrow">// AI-Powered Forensic Detection System v2.0</div>
-    <h1 class="hero-title">
-      <span class="accent-word" data-text="PIXEL">PIXEL</span>
-      TRUTH
-    </h1>
-    <p class="hero-sub">
-      Multi-model forensic intelligence that exposes GAN-generated imagery with surgical precision. Real or synthetic — we find the truth in every pixel.
-    </p>
-    <div class="hero-ctas">
-      <a href="#detect" class="btn-primary">Analyze Image</a>
-      <a href="#how" class="btn-outline">How It Works</a>
+<div class="dashboard-layout">
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-section">
+      <div class="sidebar-label">TOOLS</div>
+      <nav class="sidebar-nav">
+        <a href="#" class="sb-link active">
+          <span class="sb-icon">◈</span>Scan Image
+        </a>
+        <a href="#" class="sb-link">
+          <span class="sb-icon">⊞</span>Batch Scan
+        </a>
+        <a href="#" class="sb-link">
+          <span class="sb-icon">⌛</span>History
+        </a>
+      </nav>
     </div>
-  </div>
-
-  <div class="verdict-demo">
-    <div class="verdict-stat">
-      <div class="num real">94.7<small style="font-size:1rem">%</small></div>
-      <div class="label">Detection Accuracy</div>
-    </div>
-    <div class="verdict-divider"></div>
-    <div class="verdict-stat">
-      <div class="num acc">3</div>
-      <div class="label">AI Models</div>
-    </div>
-    <div class="verdict-divider"></div>
-    <div class="verdict-stat">
-      <div class="num fake">&lt;2s</div>
-      <div class="label">Avg. Analysis Time</div>
-    </div>
-  </div>
-</section>
-
-<!-- UPLOAD / DETECT -->
-<div class="section" id="detect">
-  <div class="section-label">// Forensic Analysis</div>
-  <h2 class="section-title">SUBMIT FOR ANALYSIS</h2>
-  <p style="color:var(--muted);font-size:0.95rem;max-width:560px;line-height:1.7;margin-bottom:40px;">
-    Upload any image and our multi-model ensemble will cross-examine it across texture, frequency, and semantic layers to deliver a forensic verdict.
-  </p>
-
-  <div class="upload-zone" onclick="document.getElementById('fileInput').click()">
-    <div class="corner tl"></div>
-    <div class="corner tr"></div>
-    <div class="corner bl"></div>
-    <div class="corner br"></div>
-    <span class="upload-icon">⬡</span>
-    <div class="upload-title">DROP IMAGE HERE</div>
-    <div class="upload-sub" style="margin-top:8px">PNG · JPG · WEBP · MAX 10MB</div>
-    <div class="upload-sub" style="margin-top:20px;color:var(--accent);opacity:0.7">— OR CLICK TO BROWSE —</div>
-    <input type="file" id="fileInput" accept="image/*" style="display:none">
-  </div>
-
-  <div id="analysisResult" style="display:none;margin-top:24px;padding:24px;border:1px solid var(--border);background:var(--bg2);">
-    <div style="font-family:'Space Mono',monospace;font-size:0.65rem;color:var(--accent);letter-spacing:3px;margin-bottom:12px;">// ANALYSIS IN PROGRESS</div>
-    <div id="resultContent"></div>
-  </div>
-</div>
-
-<!-- HOW IT WORKS -->
-<section class="how-section" id="how">
-  <div class="section" style="padding-bottom:0">
-    <div class="section-label">// Pipeline</div>
-    <h2 class="section-title">HOW IT WORKS</h2>
-  </div>
-  <div class="steps-grid">
-    <div class="step">
-      <div class="step-num">01</div>
-      <div class="step-icon">📤</div>
-      <div class="step-title">Upload</div>
-      <div class="step-desc">Submit your image through our encrypted interface. All uploads are processed in an isolated environment and never stored permanently.</div>
-    </div>
-    <div class="step">
-      <div class="step-num">02</div>
-      <div class="step-icon">🔬</div>
-      <div class="step-title">Decompose</div>
-      <div class="step-desc">Our system breaks the image into frequency maps, artifact layers, and semantic embeddings — the fingerprints GANs leave behind.</div>
-    </div>
-    <div class="step">
-      <div class="step-num">03</div>
-      <div class="step-icon">🤖</div>
-      <div class="step-title">Multi-Model Scan</div>
-      <div class="step-desc">Three independent AI models — each specialised for different GAN signatures — independently evaluate the forensic evidence.</div>
-    </div>
-    <div class="step">
-      <div class="step-num">04</div>
-      <div class="step-icon">⚖️</div>
-      <div class="step-title">Verdict</div>
-      <div class="step-desc">A weighted ensemble decision with per-model confidence scores and highlighted suspicious regions is returned to you instantly.</div>
-    </div>
-  </div>
-</section>
-
-<!-- MODELS -->
-<div class="section" id="models">
-  <div class="section-label">// Ensemble Architecture</div>
-  <h2 class="section-title">DETECTION MODELS</h2>
-  <p style="color:var(--muted);font-size:0.95rem;max-width:520px;line-height:1.7;">
-    Three specialized forensic models, each trained to detect distinct artifacts of synthetic generation, combine into a single decisive verdict.
-  </p>
-
-  <div class="models-grid">
-    <div class="model-card">
-      <div class="model-tag primary">Backbone · CNN</div>
-      <div class="model-name">FREQ SENTINEL</div>
-      <div class="model-desc">Analyses DCT frequency domain anomalies and spectral artifacts characteristic of GAN upsampling pipelines.</div>
-      <div class="model-acc">
-        <span class="acc-val">96.1%</span>
-        <span class="acc-label">accuracy on GAN-A class</span>
-      </div>
-      <div class="acc-bar-wrap"><div class="acc-bar" style="width:96.1%"></div></div>
-    </div>
-
-    <div class="model-card">
-      <div class="model-tag secondary">Backbone · ViT</div>
-      <div class="model-name">PATCH ORACLE</div>
-      <div class="model-desc">Vision Transformer that identifies inconsistent semantic context patches — regions that GANs hallucinate but humans wouldn't produce.</div>
-      <div class="model-acc">
-        <span class="acc-val">93.8%</span>
-        <span class="acc-label">accuracy on diffusion class</span>
-      </div>
-      <div class="acc-bar-wrap"><div class="acc-bar" style="width:93.8%"></div></div>
-    </div>
-
-    <div class="model-card">
-      <div class="model-tag tertiary">Backbone · ResNet</div>
-      <div class="model-name">TEXTURE JUDGE</div>
-      <div class="model-desc">Deep residual network focusing on micro-texture statistics, noise floor patterns, and compression artifacts left by generative models.</div>
-      <div class="model-acc">
-        <span class="acc-val">94.2%</span>
-        <span class="acc-label">accuracy on stylegan class</span>
-      </div>
-      <div class="acc-bar-wrap"><div class="acc-bar" style="width:94.2%"></div></div>
-    </div>
-  </div>
-</div>
-
-<!-- VERDICT -->
-<section class="verdict-section" id="verdict">
-  <div style="max-width:1200px;margin:0 auto">
-    <div class="section-label">// Output Format</div>
-    <h2 class="section-title" style="text-align:center">FORENSIC VERDICTS</h2>
-    <p style="color:var(--muted);font-size:0.95rem;max-width:480px;line-height:1.7;text-align:center;margin:0 auto;">
-      Every analysis returns a clear binary verdict backed by confidence scores from each model in the ensemble.
-    </p>
-
-    <div class="verdict-cards">
-      <div class="verdict-card real">
-        <div class="verdict-icon">✦</div>
-        <div class="verdict-label">REAL</div>
-        <div class="verdict-sublabel">AUTHENTIC IMAGE DETECTED</div>
-        <div class="conf-row">
-          <div class="conf-label"><span>Ensemble Confidence</span><span>94%</span></div>
-          <div class="conf-bar-bg"><div class="conf-bar-fill"></div></div>
+    <div class="sidebar-section">
+      <div class="sidebar-label">MODELS</div>
+      <div class="model-status-list">
+        <div class="model-item">
+          <span class="pulse-dot green"></span>
+          <span class="model-name">FREQ SENTINEL</span>
         </div>
-      </div>
-
-      <div style="display:flex;align-items:center;padding:0 12px;color:var(--muted);font-family:'Space Mono',monospace;font-size:0.6rem;letter-spacing:2px;">VS</div>
-
-      <div class="verdict-card fake">
-        <div class="verdict-icon">◈</div>
-        <div class="verdict-label">GAN</div>
-        <div class="verdict-sublabel">SYNTHETIC IMAGE DETECTED</div>
-        <div class="conf-row">
-          <div class="conf-label"><span>Ensemble Confidence</span><span>87%</span></div>
-          <div class="conf-bar-bg"><div class="conf-bar-fill"></div></div>
+        <div class="model-item">
+          <span class="pulse-dot green"></span>
+          <span class="model-name">PATCH ORACLE</span>
+        </div>
+        <div class="model-item">
+          <span class="pulse-dot green"></span>
+          <span class="model-name">TEXTURE JUDGE</span>
         </div>
       </div>
     </div>
-  </div>
-</section>
-
-<!-- FOOTER -->
-<footer>
-  <div class="footer-logo"><span>PIXEL</span> TRUTH</div>
-  <div class="footer-copy">
-    © 2025 PIXEL TRUTH — AI FORENSIC SYSTEM<br>
-    <span style="opacity:0.4">BUILT FOR THE PURSUIT OF DIGITAL TRUTH</span>
-  </div>
-  <div class="footer-status">
-    <div class="status-dot"></div>
-    ALL SYSTEMS OPERATIONAL
-  </div>
-</footer>
-
-<script>
-// ─── CURSOR TRAIL ───────────────────────────────────────────────
-const trail = document.getElementById('cursor-trail');
-document.addEventListener('mousemove', e => {
-  trail.style.left = e.clientX + 'px';
-  trail.style.top  = e.clientY + 'px';
-});
-
-// ─── AUTH STATE ─────────────────────────────────────────────────
-function updateNavAuth() {
-  const token    = localStorage.getItem('pt_token');
-  const username = localStorage.getItem('pt_username');
-  const authLinks= document.getElementById('nav-auth-links');
-  const userInfo = document.getElementById('nav-user-info');
-  const navUname = document.getElementById('nav-username');
-  if (token && username) {
-    authLinks.style.display = 'none';
-    userInfo.style.display  = 'flex';
-    navUname.textContent    = '◈ ' + username;
-  } else {
-    authLinks.style.display = 'flex';
-    userInfo.style.display  = 'none';
-  }
-}
-function handleLogout() {
-  localStorage.removeItem('pt_token');
-  localStorage.removeItem('pt_username');
-  localStorage.removeItem('pt_role');
-  updateNavAuth();
-}
-updateNavAuth();
-
-// ─── UPLOAD INTERACTION ─────────────────────────────────────────
-const fileInput  = document.getElementById('fileInput');
-const uploadZone = document.querySelector('.upload-zone');
-const result     = document.getElementById('analysisResult');
-const resultContent = document.getElementById('resultContent');
-
-const SCAN_LINES = [
-  'Loading image buffer...',
-  'Extracting DCT frequency map...',
-  'Running FREQ SENTINEL...',
-  'Running PATCH ORACLE...',
-  'Running TEXTURE JUDGE...',
-  'Aggregating ensemble votes...',
-];
-
-function startScanAnimation(file, onComplete) {
-  result.style.display = 'block';
-  resultContent.innerHTML = '';
-
-  const log = document.createElement('div');
-  log.style.cssText = 'font-family:Space Mono,monospace;font-size:0.7rem;color:#5a7080;letter-spacing:2px;';
-  resultContent.appendChild(log);
-
-  let i = 0;
-  const interval = setInterval(() => {
-    if (i < SCAN_LINES.length) {
-      const line = document.createElement('div');
-      line.textContent = '> ' + SCAN_LINES[i];
-      line.style.cssText = 'margin:4px 0;';
-      log.appendChild(line);
-      i++;
-    } else {
-      clearInterval(interval);
-      onComplete();
-    }
-  }, 380);
-}
-
-function renderVerdict(data, file) {
-  const isReal     = (data.verdict || '').toLowerCase().includes('real');
-  const confidence = data.confidence || 'N/A';
-  const method     = data.method || 'unknown';
-  const realProb   = data.real_probability != null ? (data.real_probability * 100).toFixed(1) : '—';
-  const aiProb     = data.ai_probability   != null ? (data.ai_probability   * 100).toFixed(1) : '—';
-
-  const color  = isReal ? '#39ff8a' : '#ff3c6e';
-  const icon   = isReal ? '✦' : '◈';
-  const label  = isReal ? 'AUTHENTIC' : 'SYNTHETIC';
-  const border = isReal ? 'rgba(57,255,138,0.3)' : 'rgba(255,60,110,0.3)';
-  const bg     = isReal ? 'rgba(57,255,138,0.04)' : 'rgba(255,60,110,0.04)';
-
-  const spatial   = data.models?.spatial;
-  const frequency = data.models?.frequency;
-  const modelsHtml = (spatial || frequency) ? `
-    <div style="display:flex;gap:16px;margin-top:12px;flex-wrap:wrap;">
-      ${spatial ? `<div style="font-size:0.6rem;letter-spacing:1.5px;color:#5a7080;">
-        SPATIAL: <span style="color:${color}">${(spatial.real_probability*100).toFixed(1)}% real</span>
-      </div>` : ''}
-      ${frequency ? `<div style="font-size:0.6rem;letter-spacing:1.5px;color:#5a7080;">
-        FREQUENCY: <span style="color:${color}">${(frequency.real_probability*100).toFixed(1)}% real</span>
-      </div>` : ''}
-    </div>` : '';
-
-  const verdictEl = document.createElement('div');
-  verdictEl.style.cssText = `margin-top:20px;padding:20px;border:1px solid ${border};background:${bg}`;
-  verdictEl.innerHTML = `
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:1.8rem;letter-spacing:4px;color:${color};">${icon} VERDICT: ${label}</div>
-    <div style="font-family:'Space Mono',monospace;font-size:0.6rem;color:#5a7080;margin-top:8px;letter-spacing:2px;">
-      File: ${file.name} · ${(file.size/1024).toFixed(1)}KB · Method: ${method.toUpperCase()}
+    <div class="sidebar-section sidebar-bottom">
+      <div class="session-info" id="session-info">
+        <div class="session-icon">⊙</div>
+        <div class="session-text">
+          <div class="session-label">SESSION</div>
+          <div class="session-value" id="session-user">GUEST</div>
+        </div>
+      </div>
     </div>
-    <div style="display:flex;gap:24px;margin-top:14px;flex-wrap:wrap;">
-      <div><div style="font-family:'Space Mono',monospace;font-size:0.55rem;color:#5a7080;letter-spacing:2px;margin-bottom:4px;">REAL PROBABILITY</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:3px;color:#39ff8a;">${realProb}%</div></div>
-      <div><div style="font-family:'Space Mono',monospace;font-size:0.55rem;color:#5a7080;letter-spacing:2px;margin-bottom:4px;">AI PROBABILITY</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:3px;color:#ff3c6e;">${aiProb}%</div></div>
-      <div><div style="font-family:'Space Mono',monospace;font-size:0.55rem;color:#5a7080;letter-spacing:2px;margin-bottom:4px;">CONFIDENCE</div>
-        <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:3px;color:${color};">${confidence}</div></div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main-content">
+    <div class="page-header">
+      <div>
+        <div class="page-label">// FORENSIC SCANNER</div>
+        <h1 class="page-title">IMAGE ANALYSIS</h1>
+      </div>
+      <div class="header-meta">
+        <div class="meta-chip"><span class="pulse-dot green"></span>BACKEND READY</div>
+      </div>
     </div>
-    ${modelsHtml}`;
-  resultContent.appendChild(verdictEl);
-}
 
-function renderError(message, file) {
-  const el = document.createElement('div');
-  el.style.cssText = 'margin-top:20px;padding:20px;border:1px solid rgba(255,179,0,0.3);background:rgba(255,179,0,0.04)';
-  el.innerHTML = `
-    <div style="font-family:'Bebas Neue',sans-serif;font-size:1.4rem;letter-spacing:4px;color:#ffb300;">⚠ ${message}</div>
-    <div style="font-family:'Space Mono',monospace;font-size:0.6rem;color:#5a7080;margin-top:8px;letter-spacing:2px;">
-      File: ${file.name} · Ensure the Flask backend is running on port 5000
-    </div>`;
-  resultContent.appendChild(el);
-}
+    <!-- UPLOAD ZONE -->
+    <div class="upload-section">
+      <div class="upload-zone" id="upload-zone">
+        <input type="file" id="fileInput" accept="image/*" hidden/>
+        <div class="upload-inner">
+          <div class="upload-icon">
+            <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M8 36L16 24L22 31L30 18L40 36H8Z" stroke="currentColor" stroke-width="1.5"/>
+              <circle cx="34" cy="14" r="4" stroke="currentColor" stroke-width="1.5"/>
+              <path d="M4 4H44V44H4V4Z" stroke="currentColor" stroke-width="1" stroke-dasharray="4 3" opacity="0.4"/>
+            </svg>
+          </div>
+          <div class="upload-label">DROP IMAGE OR <span class="upload-browse" onclick="document.getElementById('fileInput').click()">BROWSE</span></div>
+          <div class="upload-formats">JPG · PNG · WEBP · BMP · TIFF</div>
+        </div>
+        <div class="upload-corner tl"></div>
+        <div class="upload-corner tr"></div>
+        <div class="upload-corner bl"></div>
+        <div class="upload-corner br"></div>
+      </div>
+    </div>
 
-async function analyzeImage(file) {
-  startScanAnimation(file, async () => {
-    const formData = new FormData();
-    formData.append('image', file);
+    <!-- RESULT PANEL -->
+    <div class="result-panel" id="result-panel" style="display:none">
+      <div class="result-header">
+        <span class="result-title">// ANALYSIS OUTPUT</span>
+        <button class="result-close" onclick="closeResult()">✕ CLEAR</button>
+      </div>
+      <div class="result-body" id="result-body"></div>
+    </div>
 
-    try {
-      const res = await fetch('/api/detect', {
-        method: 'POST',
-        body: formData,
-        headers: localStorage.getItem('pt_token')
-          ? { 'Authorization': 'Bearer ' + localStorage.getItem('pt_token') }
-          : {}
-      });
-      const data = await res.json();
+    <!-- QUICK GUIDE -->
+    <div class="quick-guide" id="quick-guide">
+      <div class="guide-grid">
+        <div class="guide-item">
+          <div class="guide-num">01</div>
+          <div class="guide-text">Upload any image — real photo or suspected AI-generated</div>
+        </div>
+        <div class="guide-item">
+          <div class="guide-num">02</div>
+          <div class="guide-text">Three specialized models run forensic analysis in parallel</div>
+        </div>
+        <div class="guide-item">
+          <div class="guide-num">03</div>
+          <div class="guide-text">Receive an ensemble verdict with calibrated confidence scores</div>
+        </div>
+      </div>
+    </div>
+  </main>
 
-      if (res.ok && data.success) {
-        renderVerdict(data, file);
-      } else {
-        renderError(data.error || 'Detection failed', file);
-      }
-    } catch (err) {
-      renderError('Cannot connect to backend — start Flask server', file);
-    }
-  });
-}
+  <!-- RIGHT PANEL -->
+  <aside class="right-panel">
+    <div class="rp-section">
+      <div class="rp-label">SCAN LOG</div>
+      <div class="scan-log" id="scan-log">
+        <div class="log-empty">No scans yet</div>
+      </div>
+    </div>
+    <div class="rp-section">
+      <div class="rp-label">SESSION STATS</div>
+      <div class="session-stats">
+        <div class="ss-item">
+          <div class="ss-num" id="ss-total">0</div>
+          <div class="ss-label">Scanned</div>
+        </div>
+        <div class="ss-item">
+          <div class="ss-num green" id="ss-real">0</div>
+          <div class="ss-label">Real</div>
+        </div>
+        <div class="ss-item">
+          <div class="ss-num red" id="ss-fake">0</div>
+          <div class="ss-label">Fake</div>
+        </div>
+      </div>
+    </div>
+  </aside>
+</div>
 
-fileInput.addEventListener('change', e => {
-  const file = e.target.files[0];
-  if (file) analyzeImage(file);
-});
-
-// ─── DRAG AND DROP ──────────────────────────────────────────────
-uploadZone.addEventListener('dragover', e => {
-  e.preventDefault();
-  uploadZone.style.borderColor = 'var(--accent)';
-  uploadZone.style.background  = 'rgba(0,212,255,0.04)';
-});
-uploadZone.addEventListener('dragleave', () => {
-  uploadZone.style.borderColor = '';
-  uploadZone.style.background  = '';
-});
-uploadZone.addEventListener('drop', e => {
-  e.preventDefault();
-  uploadZone.style.borderColor = '';
-  uploadZone.style.background  = '';
-  const file = e.dataTransfer.files[0];
-  if (file) analyzeImage(file);
-});
-
-// ─── SCROLL BAR ANIMATIONS ──────────────────────────────────────
-const observer = new IntersectionObserver(entries => {
-  entries.forEach(entry => {
-    if (entry.isIntersecting) entry.target.style.animationPlayState = 'running';
-  });
-}, { threshold: 0.2 });
-document.querySelectorAll('.acc-bar').forEach(b => {
-  b.style.animationPlayState = 'paused';
-  observer.observe(b);
-});
-</script>
+<script src="{{ url_for('static', filename='shared.js')}}"></script>
+<script src="{{url_for('static',filename='landing.js')}}"></script>
 </body>
 </html>

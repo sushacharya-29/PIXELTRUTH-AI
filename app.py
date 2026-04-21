@@ -167,7 +167,7 @@ def get_frequency_model():
         return None
 
     try:
-        from v5frequency import get_frequency_model_v5
+        from v5_2frequency import get_frequency_model_v5
         params = _get_tuning_params()
         device = _get_device()
 

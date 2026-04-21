@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>PIXEL TRUTH — Admin Monitor</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='shared.css') }}"/>
+<link rel="stylesheet" href="{{ url_for('static', filename='shared.css') }}"/>
+</head>
+<body class="admin-page">
+<div id="cursor-dot"></div>
+
+<!-- ACCESS GATE -->
+<div id="access-gate" class="access-gate">
+  <div class="gate-card">
+    <div class="gate-icon">▲</div>
+    <div class="gate-title">ADMIN ACCESS REQUIRED</div>
+    <div class="gate-sub">This panel is restricted to authorized administrators only.</div>
+    <a href="/login" class="gate-btn">GO TO LOGIN</a>
+  </div>
+</div>
+
+<!-- PANEL (shown after auth check) -->
+<div id="admin-panel" style="display:none">
+
+<nav class="nav admin-nav">
+  <a href="/" class="nav-logo"><span>PT</span></a>
+  <div class="nav-wordmark">PIXEL<em>TRUTH</em> <span class="admin-badge">ADMIN</span></div>
+  <ul class="nav-links">
+    <li><a href="/home">Dashboard</a></li>
+    <li><a href="/admin" class="active">Monitor</a></li>
+  </ul>
+  <div class="nav-right">
+    <span id="admin-username" class="nav-username"></span>
+    <button onclick="handleLogout()" class="nav-link-btn">LOGOUT</button>
+  </div>
+</nav>
+
+<div class="admin-layout">
+
+  <!-- TOP STATUS BAR -->
+  <div class="status-bar">
+    <div class="sb-item">
+      <span class="pulse-dot green"></span>
+      <span>SYSTEM OPERATIONAL</span>
+    </div>
+    <div class="sb-item">
+      <span class="sb-key">UPTIME</span>
+      <span class="sb-val" id="uptime-counter">00:00:00</span>
+    </div>
+    <div class="sb-item">
+      <span class="sb-key">LAST REFRESH</span>
+      <span class="sb-val" id="last-refresh">--:--:--</span>
+    </div>
+    <div class="sb-item">
+      <button class="refresh-btn" onclick="fetchStats()">⟳ REFRESH</button>
+    </div>
+  </div>
+
+  <!-- KPI CARDS -->
+  <div class="kpi-grid">
+    <div class="kpi-card total">
+      <div class="kpi-label">TOTAL SCANNED</div>
+      <div class="kpi-num" id="kpi-total">
+        <span class="count-up" data-target="0">0</span>
+      </div>
+      <div class="kpi-bar-wrap">
+        <div class="kpi-bar" id="bar-total" style="width:0%"></div>
+      </div>
+      <div class="kpi-sub" id="sub-total">Images processed today</div>
+    </div>
+
+    <div class="kpi-card accuracy">
+      <div class="kpi-label">CORRECT PREDICTIONS</div>
+      <div class="kpi-num" id="kpi-correct">
+        <span class="count-up" data-target="0">0</span>
+        <span class="kpi-frac" id="kpi-frac">/ 0</span>
+      </div>
+      <div class="kpi-bar-wrap">
+        <div class="kpi-bar green" id="bar-accuracy" style="width:0%"></div>
+      </div>
+      <div class="kpi-sub" id="sub-accuracy">0.0% accuracy rate</div>
+    </div>
+
+    <div class="kpi-card real-count">
+      <div class="kpi-label">REAL IMAGES DETECTED</div>
+      <div class="kpi-num green" id="kpi-real">
+        <span class="count-up" data-target="0">0</span>
+      </div>
+      <div class="kpi-bar-wrap">
+        <div class="kpi-bar green" id="bar-real" style="width:0%"></div>
+      </div>
+      <div class="kpi-sub" id="sub-real">0% of total scans</div>
+    </div>
+
+    <div class="kpi-card fake-count">
+      <div class="kpi-label">FAKE IMAGES DETECTED</div>
+      <div class="kpi-num red" id="kpi-fake">
+        <span class="count-up" data-target="0">0</span>
+      </div>
+      <div class="kpi-bar-wrap">
+        <div class="kpi-bar red" id="bar-fake" style="width:0%"></div>
+      </div>
+      <div class="kpi-sub" id="sub-fake">0% of total scans</div>
+    </div>
+  </div>
+
+  <!-- CHARTS + ACTIVITY -->
+  <div class="mid-grid">
+    <!-- DONUT CHART -->
+    <div class="chart-card">
+      <div class="chart-header">
+        <span class="chart-title">VERDICT DISTRIBUTION</span>
+        <span class="chart-period">LIVE</span>
+      </div>
+      <div class="donut-wrap">
+        <svg class="donut-svg" viewBox="0 0 180 180" id="donut-svg">
+          <circle class="donut-bg" cx="90" cy="90" r="70" fill="none" stroke-width="18"/>
+          <circle class="donut-real" cx="90" cy="90" r="70" fill="none" stroke-width="18"
+            stroke-dasharray="0 440" stroke-dashoffset="110" id="donut-real"/>
+          <circle class="donut-fake" cx="90" cy="90" r="70" fill="none" stroke-width="18"
+            stroke-dasharray="0 440" stroke-dashoffset="110" id="donut-fake"/>
+          <text x="90" y="86" class="donut-center-num" id="donut-center-num">0</text>
+          <text x="90" y="102" class="donut-center-label">SCANS</text>
+        </svg>
+        <div class="donut-legend">
+          <div class="dl-item"><span class="dl-dot green"></span>Real</div>
+          <div class="dl-item"><span class="dl-dot red"></span>Fake</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ACTIVITY FEED -->
+    <div class="activity-card">
+      <div class="chart-header">
+        <span class="chart-title">LIVE ACTIVITY</span>
+        <span class="pulse-dot green"></span>
+      </div>
+      <div class="activity-feed" id="activity-feed">
+        <div class="af-empty">Awaiting scan events…</div>
+      </div>
+    </div>
+
+    <!-- MODEL PERFORMANCE -->
+    <div class="model-card">
+      <div class="chart-header">
+        <span class="chart-title">MODEL PERFORMANCE</span>
+      </div>
+      <div class="model-perf-list">
+        <div class="mp-item">
+          <div class="mp-header">
+            <span class="mp-name">FREQ SENTINEL</span>
+            <span class="mp-val accent" id="mp-freq">—</span>
+          </div>
+          <div class="mp-bar-bg"><div class="mp-bar" id="mpb-freq" style="width:0%;--c:var(--accent)"></div></div>
+        </div>
+        <div class="mp-item">
+          <div class="mp-header">
+            <span class="mp-name">PATCH ORACLE</span>
+            <span class="mp-val green" id="mp-patch">—</span>
+          </div>
+          <div class="mp-bar-bg"><div class="mp-bar" id="mpb-patch" style="width:0%;--c:var(--accent3)"></div></div>
+        </div>
+        <div class="mp-item">
+          <div class="mp-header">
+            <span class="mp-name">TEXTURE JUDGE</span>
+            <span class="mp-val green" id="mp-texture">—</span>
+          </div>
+          <div class="mp-bar-bg"><div class="mp-bar" id="mpb-texture" style="width:0%;--c:var(--accent3)"></div></div>
+        </div>
+        <div class="mp-item">
+          <div class="mp-header">
+            <span class="mp-name">ENSEMBLE</span>
+            <span class="mp-val accent" id="mp-ensemble">—</span>
+          </div>
+          <div class="mp-bar-bg"><div class="mp-bar" id="mpb-ensemble" style="width:0%;--c:var(--accent)"></div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- RECENT SCANS TABLE -->
+  <div class="table-card">
+    <div class="chart-header">
+      <span class="chart-title">RECENT SCAN RECORDS</span>
+      <span class="table-count" id="table-count">0 records</span>
+    </div>
+    <div class="table-wrap">
+      <table class="scan-table">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>FILE</th>
+            <th>VERDICT</th>
+            <th>REAL PROB</th>
+            <th>AI PROB</th>
+            <th>CONFIDENCE</th>
+            <th>METHOD</th>
+            <th>TIME</th>
+          </tr>
+        </thead>
+        <tbody id="scan-table-body">
+          <tr class="empty-row"><td colspan="8">No scan records available</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div><!-- end admin-layout -->
+</div><!-- end admin-panel -->
+
+<script src="{{ url_for('static', filename='shared.js')}}"></script>
+<script src="{{url_for('static',filename='admin.js')}}"></script>
+</body>
+</html>
