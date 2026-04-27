@@ -4,8 +4,8 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1.0" />
 <title>ADMIN REGISTRATION — PIXEL TRUTH</title>
-<!-- FIX: Static path corrected from "auth.css" to Flask static route -->
-<link rel="stylesheet" href="/static/css/auth.css" />
+<link rel="stylesheet" href="{{ url_for('static', filename='css/shared.css') }}"/>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}"/>
 <style>
 /* Admin-specific overrides */
 .auth-card::before, .auth-card::after { border-color: var(--accent2); }
@@ -44,9 +44,10 @@
 </head>
 <body>
 
+<div id="cursor-dot"></div>
 <div id="cursor-trail"></div>
 
-<!-- NAV — FIX: hrefs updated to Flask routes -->
+<!-- NAV -->
 <nav>
   <a class="nav-logo" href="/"><span>PIXEL</span> TRUTH</a>
   <ul class="nav-links">
@@ -168,7 +169,7 @@
     <!-- DIVIDER -->
     <div class="auth-divider"><span>Not an admin?</span></div>
 
-    <!-- LINKS — FIX: hrefs updated to Flask routes -->
+    <!-- LINKS -->
     <div class="auth-links">
       <a href="/register" class="auth-link">← User registration</a>
       <a href="/login" class="auth-link accent">Login ▲</a>
@@ -179,8 +180,8 @@
 
 <footer class="auth-footer">© 2025 PIXEL TRUTH — RESTRICTED ADMIN PORTAL</footer>
 
-<!-- FIX: Static path corrected from "auth.js" to Flask static route -->
-<script src="/static/js/auth.js"></script>
+<script src="{{ url_for('static', filename='js/shared.js') }}"></script>
+<script src="{{ url_for('static', filename='js/auth.js') }}"></script>
 <script>
 // ─── ACCESS LEVEL TOGGLE ───────────────────────────────
 document.querySelectorAll('.access-btn').forEach(btn => {
@@ -283,7 +284,7 @@ document.getElementById('admin-register-form').addEventListener('submit', async 
       setBtnLoading(btn, false);
     }
   } catch (err) {
-    showAlert('admin-alert', '⚠ Cannot connect to server. Check backend is running on port 5000.', 'info');
+    showAlert('admin-alert', '⚠ Cannot connect to server. Check backend is running.', 'info');
     setBtnLoading(btn, false);
   }
 });

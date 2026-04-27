@@ -34,9 +34,11 @@ function updateNavAuth() {
 
   if (authLinks) authLinks.style.display = (token && username) ? 'none' : 'flex';
   if (userInfo)  userInfo.style.display  = (token && username) ? 'flex' : 'none';
-  if (navUname && username) navUname.textContent = username.toUpperCase();
+  if (navUname) {
+  navUname.textContent = username ? username.toUpperCase() : '';
 }
-updateNavAuth();
+}
+document.addEventListener('DOMContentLoaded', updateNavAuth);
 
 // ── Number counter animation ─────────────────────────────────────
 function animateCount(el, target, duration = 1200) {

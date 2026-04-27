@@ -3,135 +3,338 @@
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
-<title>PIXEL TRUTH — AI Forensic System</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='shared.css') }}"/>
-<link rel="stylesheet" href="{{ url_for('static', filename='landing.css') }}"/>
-</head>
-<body class="landing-page">
-<div id="cursor-dot"></div>
-<canvas id="particle-canvas"></canvas>
+<title>PIXELTRUTH — Unmask the Synthetic</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@300;400;600;700;900&family=JetBrains+Mono:wght@300;400;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --void:#03050a;--deep:#070b14;--panel:#0c1220;--border:#1a2540;
+  --glow:#00f5ff;--hot:#ff2d6b;--volt:#b8ff00;--dim:#8899bb;
+  --text:#dce8ff;--nav-h:64px;
+}
+html{scroll-behavior:smooth}
+body{background:var(--void);color:var(--text);font-family:'Barlow Condensed',sans-serif;overflow-x:hidden;cursor:none;min-height:100vh}
 
-<nav class="nav">
-  <a href="/" class="nav-logo"><span>PT</span></a>
-  <div class="nav-wordmark">PIXEL<em>TRUTH</em></div>
-  <ul class="nav-links">
-    <li><a href="/landing">Home</a></li>
+/* CURSOR */
+#cur{position:fixed;width:10px;height:10px;background:var(--glow);border-radius:50%;pointer-events:none;z-index:99999;transform:translate(-50%,-50%);box-shadow:0 0 20px var(--glow),0 0 40px rgba(0,245,255,0.4);mix-blend-mode:screen;will-change:left,top}
+#cur2{position:fixed;width:38px;height:38px;border:1px solid rgba(0,245,255,0.35);border-radius:50%;pointer-events:none;z-index:99998;transform:translate(-50%,-50%);will-change:left,top}
+#cur2::before,#cur2::after{content:'';position:absolute;background:var(--glow)}
+#cur2::before{width:5px;height:1px;top:50%;left:-8px;margin-top:-.5px}
+#cur2::after{width:1px;height:5px;left:50%;top:-8px;margin-left:-.5px}
+
+/* NOISE */
+body::before{content:'';position:fixed;inset:0;z-index:9998;pointer-events:none;background-image:url("data:image/svg+xml,%3Csvg viewBox='0 0 512 512' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='0.03'/%3E%3C/svg%3E");opacity:.5;animation:grain .3s steps(1) infinite}
+@keyframes grain{0%{transform:translate(0,0)}20%{transform:translate(-2%,-3%)}40%{transform:translate(-5%,2%)}60%{transform:translate(3%,-1%)}80%{transform:translate(-2%,4%)}100%{transform:translate(2%,-2%)}}
+body::after{content:'';position:fixed;inset:0;z-index:9997;pointer-events:none;background:repeating-linear-gradient(0deg,transparent,transparent 3px,rgba(0,245,255,0.006) 3px,rgba(0,245,255,0.006) 6px)}
+
+/* NAV */
+nav{position:fixed;top:0;left:0;right:0;z-index:1000;height:var(--nav-h);display:flex;align-items:center;padding:0 48px;border-bottom:1px solid var(--border);background:rgba(3,5,10,0.88);backdrop-filter:blur(20px);gap:0}
+.nav-logo{font-family:'Bebas Neue',sans-serif;font-size:1.9rem;letter-spacing:6px;color:var(--glow);text-decoration:none;text-shadow:0 0 30px rgba(0,245,255,0.6);flex-shrink:0}
+.nav-logo b{color:var(--hot);font-weight:400}
+.nav-links-c{flex:1;display:flex;justify-content:center;gap:48px;list-style:none}
+.nav-links-c a{font-family:'JetBrains Mono',monospace;font-size:.65rem;letter-spacing:3px;text-transform:uppercase;color:var(--dim);text-decoration:none;transition:color .2s;position:relative;padding-bottom:3px}
+.nav-links-c a::after{content:'';position:absolute;bottom:0;left:0;width:0;height:1px;background:var(--glow);transition:width .3s}
+.nav-links-c a:hover{color:var(--text)}
+.nav-links-c a:hover::after{width:100%}
+.nav-r{display:flex;align-items:center;gap:14px;flex-shrink:0}
+.np{display:flex;align-items:center;gap:7px;font-family:'JetBrains Mono',monospace;font-size:.55rem;color:var(--volt);letter-spacing:2px}
+.nd{width:6px;height:6px;border-radius:50%;background:var(--volt);animation:pp 1.5s ease-in-out infinite}
+@keyframes pp{0%,100%{box-shadow:0 0 0 rgba(184,255,0,0)}50%{box-shadow:0 0 12px rgba(184,255,0,0.6)}}
+.nb{font-family:'JetBrains Mono',monospace;font-size:.6rem;letter-spacing:2px;text-transform:uppercase;padding:8px 20px;text-decoration:none;transition:all .2s}
+.nb.o{color:var(--dim);border:1px solid var(--border)}
+.nb.o:hover{color:var(--text);border-color:rgba(0,245,255,0.4)}
+.nb.f{color:var(--void);background:var(--glow);border:1px solid var(--glow);box-shadow:0 0 20px rgba(0,245,255,0.3)}
+.nb.f:hover{box-shadow:0 0 50px rgba(0,245,255,0.7)}
+
+/* HERO */
+.hero{min-height:100vh;display:grid;grid-template-columns:1fr 1fr;align-items:center;padding:var(--nav-h) 60px 0;position:relative;overflow:hidden}
+.hgrid{position:absolute;inset:0;background-image:linear-gradient(rgba(0,245,255,0.022) 1px,transparent 1px),linear-gradient(90deg,rgba(0,245,255,0.022) 1px,transparent 1px);background-size:80px 80px;animation:gm 28s linear infinite}
+@keyframes gm{from{transform:translateY(0)}to{transform:translateY(80px)}}
+.bl1,.bl2,.bl3{position:absolute;border-radius:50%;filter:blur(110px);pointer-events:none}
+.bl1{width:700px;height:700px;background:radial-gradient(circle,rgba(0,245,255,0.065) 0%,transparent 70%);top:-250px;right:-150px;animation:bd 20s ease-in-out infinite}
+.bl2{width:500px;height:500px;background:radial-gradient(circle,rgba(255,45,107,0.055) 0%,transparent 70%);bottom:-150px;left:-100px;animation:bd 24s ease-in-out infinite reverse}
+.bl3{width:350px;height:350px;background:radial-gradient(circle,rgba(184,255,0,0.035) 0%,transparent 70%);top:55%;left:52%;transform:translate(-50%,-50%);animation:bd 16s ease-in-out infinite}
+@keyframes bd{0%,100%{transform:translate(0,0) scale(1)}33%{transform:translate(40px,-50px) scale(1.06)}66%{transform:translate(-30px,35px) scale(.94)}}
+
+/* HERO LEFT */
+.hl{position:relative;z-index:2;padding-right:64px}
+.pre-tag{display:inline-flex;align-items:center;gap:12px;font-family:'JetBrains Mono',monospace;font-size:.62rem;letter-spacing:4px;text-transform:uppercase;color:var(--glow);margin-bottom:32px;animation:fu .8s .1s both}
+.pre-tag::before{content:'';width:32px;height:1px;background:var(--glow);box-shadow:0 0 8px var(--glow)}
+
+/* GLITCH */
+.gt-wrap{line-height:.88;margin-bottom:4px;animation:fu .8s .2s both}
+.gt{font-family:'Bebas Neue',sans-serif;font-size:clamp(5.5rem,12vw,11rem);letter-spacing:-1px;color:var(--text);position:relative;display:inline-block;text-shadow:0 0 60px rgba(0,245,255,0.1)}
+.gt::before,.gt::after{content:attr(data-text);position:absolute;top:0;left:0;font-family:inherit;font-size:inherit;letter-spacing:inherit}
+.gt::before{color:var(--glow);clip-path:polygon(0 0,100% 0,100% 40%,0 40%);animation:g1 7s infinite;text-shadow:3px 0 var(--glow)}
+.gt::after{color:var(--hot);clip-path:polygon(0 60%,100% 60%,100% 100%,0 100%);animation:g2 7s infinite;text-shadow:-3px 0 var(--hot)}
+@keyframes g1{0%,84%,100%{transform:translate(0);opacity:0}86%{transform:translate(-4px,1px);opacity:.9}88%{transform:translate(4px,-1px);opacity:.9}90%{transform:translate(-2px,2px);opacity:.7}92%{transform:translate(0);opacity:0}}
+@keyframes g2{0%,86%,100%{transform:translate(0);opacity:0}88%{transform:translate(4px,0);opacity:.9}90%{transform:translate(-4px,0);opacity:.9}92%{transform:translate(2px,-2px);opacity:.7}94%{transform:translate(0);opacity:0}}
+.gt2{font-family:'Bebas Neue',sans-serif;font-size:clamp(5.5rem,12vw,11rem);letter-spacing:8px;background:linear-gradient(135deg,var(--hot) 0%,rgba(255,45,107,0.3) 100%);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;display:block;animation:fu .8s .3s both;line-height:.88}
+
+.hdesc{font-size:1.2rem;line-height:1.75;color:var(--dim);margin:32px 0 44px;max-width:460px;letter-spacing:.3px;animation:fu .8s .45s both}
+.hdesc strong{color:var(--text)}
+.ctar{display:flex;align-items:center;gap:18px;flex-wrap:wrap;animation:fu .8s .6s both}
+.cm{display:inline-flex;align-items:center;gap:12px;font-family:'Bebas Neue',sans-serif;font-size:1.1rem;letter-spacing:4px;color:var(--void);background:var(--glow);padding:15px 40px;text-decoration:none;position:relative;overflow:hidden;box-shadow:0 0 40px rgba(0,245,255,0.35),inset 0 0 20px rgba(255,255,255,0.08);transition:box-shadow .3s,transform .2s}
+.cm::before{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,0.18),transparent);transform:translateX(-100%);transition:transform .5s}
+.cm:hover{box-shadow:0 0 70px rgba(0,245,255,0.65);transform:translateY(-2px)}
+.cm:hover::before{transform:translateX(100%)}
+.cg{display:inline-flex;align-items:center;gap:10px;font-family:'JetBrains Mono',monospace;font-size:.7rem;letter-spacing:2px;color:var(--text);border:1px solid rgba(255,255,255,0.13);padding:15px 30px;text-decoration:none;transition:all .2s;text-transform:uppercase}
+.cg:hover{border-color:rgba(255,45,107,0.55);color:var(--hot)}
+.atiny{margin-top:18px;animation:fu .8s .75s both}
+.atiny a{font-family:'JetBrains Mono',monospace;font-size:.58rem;letter-spacing:3px;color:var(--dim);text-decoration:none;text-transform:uppercase;transition:color .2s}
+.atiny a::before{content:'▲ ';color:var(--hot)}
+.atiny a:hover{color:var(--hot)}
+
+/* HERO RIGHT */
+.hr{position:relative;z-index:2;display:flex;align-items:center;justify-content:center}
+.tc{width:100%;max-width:530px;background:var(--panel);border:1px solid var(--border);position:relative;overflow:hidden;animation:fu .8s .4s both}
+.tc::before{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:linear-gradient(90deg,transparent,var(--glow),transparent);animation:sl 3.5s ease-in-out infinite}
+@keyframes sl{0%{opacity:0;transform:scaleX(0)}50%{opacity:1;transform:scaleX(1)}100%{opacity:0;transform:scaleX(0)}}
+.tbar{display:flex;align-items:center;gap:8px;padding:13px 16px;border-bottom:1px solid var(--border);background:rgba(0,0,0,0.3)}
+.tdot{width:11px;height:11px;border-radius:50%}
+.tdot:nth-child(1){background:#ff5f57}.tdot:nth-child(2){background:#febc2e}.tdot:nth-child(3){background:#28c840}
+.ttitle{margin:0 auto;font-family:'JetBrains Mono',monospace;font-size:.58rem;color:var(--dim);letter-spacing:2px}
+.tb{padding:22px;font-family:'JetBrains Mono',monospace;font-size:.68rem;line-height:2}
+.tl{display:flex;gap:10px;align-items:center;white-space:nowrap}
+.tp{color:var(--volt)}.tc-t{color:var(--text)}.to{color:var(--dim);padding-left:20px}
+.to.s{color:var(--glow)}.to.d{color:var(--hot)}.to.w{color:var(--volt)}
+.tcur{display:inline-block;width:8px;height:14px;background:var(--glow);animation:bl .8s step-end infinite;vertical-align:middle}
+@keyframes bl{0%,100%{opacity:1}50%{opacity:0}}
+.sviz{margin:14px 0;border:1px solid var(--border);padding:14px;background:rgba(0,0,0,0.3)}
+.srow{display:flex;align-items:center;gap:10px;margin-bottom:9px}
+.srow:last-child{margin-bottom:0}
+.sk{font-size:.59rem;letter-spacing:1.5px;color:var(--dim);width:114px;flex-shrink:0}
+.sbb{flex:1;height:4px;background:var(--border);overflow:hidden}
+.sf{height:100%;animation:bl2 1.6s cubic-bezier(.16,1,.3,1) forwards}
+@keyframes bl2{from{width:0!important}to{width:inherit}}
+.sg{background:var(--glow);box-shadow:0 0 8px var(--glow)}
+.sv{background:var(--volt);box-shadow:0 0 8px var(--volt)}
+.sh{background:var(--hot);box-shadow:0 0 8px var(--hot)}
+.sp{font-size:.62rem;width:36px;text-align:right}
+.pg{color:var(--glow)}.pv{color:var(--volt)}.ph{color:var(--hot)}
+.vb{margin-top:18px;padding:13px 16px;border:1px solid rgba(0,245,255,0.22);background:rgba(0,245,255,0.05);display:flex;align-items:center;justify-content:space-between;transition:all .4s}
+.vb.fake{border-color:rgba(255,45,107,0.22);background:rgba(255,45,107,0.05)}
+.vl{font-family:'Bebas Neue',sans-serif;font-size:1.35rem;letter-spacing:4px;color:var(--glow);text-shadow:0 0 20px rgba(0,245,255,0.7);transition:all .4s}
+.vb.fake .vl{color:var(--hot);text-shadow:0 0 20px rgba(255,45,107,0.7)}
+.vc{font-family:'JetBrains Mono',monospace;font-size:.6rem;color:var(--dim)}
+.vc span{color:var(--volt)}
+
+/* STATS */
+.ss{display:flex;border-top:1px solid var(--border);border-bottom:1px solid var(--border);background:var(--deep)}
+.si{flex:1;padding:36px 20px;text-align:center;border-right:1px solid var(--border);position:relative;overflow:hidden;transition:background .3s;cursor:default}
+.si:last-child{border-right:none}
+.si::after{content:'';position:absolute;bottom:0;left:0;right:0;height:2px;transform:scaleX(0);transition:transform .4s}
+.si:nth-child(1)::after{background:var(--glow)}.si:nth-child(2)::after{background:var(--volt)}
+.si:nth-child(3)::after{background:var(--hot)}.si:nth-child(4)::after{background:var(--glow)}
+.si:hover::after{transform:scaleX(1)}.si:hover{background:rgba(255,255,255,0.015)}
+.sn{font-family:'Bebas Neue',sans-serif;font-size:clamp(2.4rem,4.5vw,3.8rem);letter-spacing:2px;line-height:1;margin-bottom:8px}
+.ng{color:var(--glow);text-shadow:0 0 30px rgba(0,245,255,0.45)}
+.nv{color:var(--volt);text-shadow:0 0 30px rgba(184,255,0,0.45)}
+.nh{color:var(--hot);text-shadow:0 0 30px rgba(255,45,107,0.45)}
+.sl2{font-family:'JetBrains Mono',monospace;font-size:.58rem;letter-spacing:3px;text-transform:uppercase;color:var(--dim)}
+
+/* FEATURES */
+.feats{padding:110px 60px;position:relative}
+.stag{display:flex;align-items:center;gap:16px;font-family:'JetBrains Mono',monospace;font-size:.62rem;letter-spacing:4px;text-transform:uppercase;color:var(--glow);margin-bottom:18px}
+.stag::after{content:'';flex:1;height:1px;background:linear-gradient(90deg,var(--glow),transparent);max-width:200px}
+.stitle{font-family:'Bebas Neue',sans-serif;font-size:clamp(3rem,5.5vw,5.5rem);letter-spacing:3px;color:var(--text);margin-bottom:64px;line-height:1}
+.stitle em{font-style:normal;color:var(--hot)}
+.fg{display:grid;grid-template-columns:repeat(3,1fr);gap:1px;background:var(--border)}
+.fc{background:var(--deep);padding:44px 36px;position:relative;overflow:hidden;transition:background .3s;cursor:default}
+.fc::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;transform:scaleX(0);transform-origin:left;transition:transform .5s}
+.fc:nth-child(1)::before{background:var(--glow)}.fc:nth-child(2)::before{background:var(--volt)}.fc:nth-child(3)::before{background:var(--hot)}
+.fc:hover::before{transform:scaleX(1)}.fc:hover{background:rgba(255,255,255,0.018)}
+.fn2{font-family:'Bebas Neue',sans-serif;font-size:4.5rem;letter-spacing:-2px;line-height:1;color:rgba(255,255,255,0.035);position:absolute;top:16px;right:24px;transition:color .3s}
+.fc:hover .fn2{color:rgba(255,255,255,0.065)}
+.fi{font-size:2.2rem;margin-bottom:22px;display:block}
+.fna{font-family:'Bebas Neue',sans-serif;font-size:1.7rem;letter-spacing:3px;margin-bottom:14px;color:var(--text)}
+.fd{font-size:1.05rem;line-height:1.75;color:var(--dim);letter-spacing:.2px}
+
+/* HOW */
+.how{padding:90px 60px 110px;background:var(--deep);border-top:1px solid var(--border);border-bottom:1px solid var(--border)}
+.steps{display:grid;grid-template-columns:repeat(3,1fr);gap:0;margin-top:64px;position:relative}
+.steps::before{content:'';position:absolute;top:27px;left:calc(33.33%/2);right:calc(33.33%/2);height:1px;background:var(--border)}
+.step{text-align:center;padding:0 36px;position:relative;z-index:1}
+.sbub{width:56px;height:56px;border:1px solid var(--border);display:flex;align-items:center;justify-content:center;margin:0 auto 26px;font-family:'Bebas Neue',sans-serif;font-size:1.4rem;background:var(--deep);transition:all .3s}
+.step:hover .sbub{border-color:var(--glow);box-shadow:0 0 30px rgba(0,245,255,0.3);color:var(--glow)}
+.stt{font-family:'Bebas Neue',sans-serif;font-size:1.5rem;letter-spacing:3px;margin-bottom:12px;color:var(--text)}
+.std{font-size:1.05rem;color:var(--dim);line-height:1.75}
+
+/* CTA BANNER */
+.ctab{padding:110px 60px;text-align:center;position:relative;overflow:hidden}
+.ctab::before{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 80% 60% at 50% 50%,rgba(0,245,255,0.04) 0%,transparent 70%)}
+.bt{font-family:'Bebas Neue',sans-serif;font-size:clamp(4rem,8vw,8rem);letter-spacing:4px;line-height:.95;color:var(--text);margin-bottom:28px;position:relative;z-index:1}
+.bt .acc{display:block;background:linear-gradient(90deg,var(--glow),var(--volt));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.bs{font-family:'JetBrains Mono',monospace;font-size:.75rem;letter-spacing:2px;color:var(--dim);margin-bottom:52px;position:relative;z-index:1}
+.cp{display:flex;align-items:center;justify-content:center;gap:18px;position:relative;z-index:1;flex-wrap:wrap}
+
+/* FOOTER */
+footer{border-top:1px solid var(--border);padding:28px 60px;display:flex;align-items:center;justify-content:space-between;background:var(--void);font-family:'JetBrains Mono',monospace;flex-wrap:wrap;gap:16px}
+.fl{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:5px;color:var(--glow)}
+.fc2{font-size:.55rem;letter-spacing:2px;color:var(--dim);text-transform:uppercase}
+.fll{display:flex;gap:24px}
+.fll a{font-size:.58rem;letter-spacing:2px;color:var(--dim);text-decoration:none;text-transform:uppercase;transition:color .2s}
+.fll a:hover{color:var(--glow)}
+
+@keyframes fu{from{opacity:0;transform:translateY(32px)}to{opacity:1;transform:translateY(0)}}
+.rev{opacity:0;transform:translateY(26px);transition:opacity .7s,transform .7s}
+.rev.in{opacity:1;transform:translateY(0)}
+
+/* RESPONSIVE */
+@media(max-width:1024px){
+  .hero{grid-template-columns:1fr;padding:calc(var(--nav-h)+40px) 32px 60px}
+  .hl{padding-right:0;margin-bottom:48px}
+  .fg{grid-template-columns:1fr}
+  .steps{grid-template-columns:1fr}.steps::before{display:none}
+  .step{margin-bottom:40px;padding:0 20px}
+  nav{padding:0 24px}.nav-links-c{gap:24px}
+  .ss{flex-wrap:wrap}.si{min-width:50%}
+  .feats{padding:64px 32px}.how{padding:64px 32px 80px}.ctab{padding:64px 32px}
+  footer{padding:24px 32px;justify-content:center;text-align:center}.fll{justify-content:center}
+}
+@media(max-width:640px){
+  .gt{font-size:clamp(4rem,18vw,5.5rem)}.gt2{font-size:clamp(4rem,18vw,5.5rem)}
+  .nav-links-c{display:none}.si{min-width:100%}
+  .hero{padding-left:20px;padding-right:20px}
+  .feats{padding:48px 20px}.how{padding:48px 20px}.ctab{padding:48px 20px}
+}
+</style>
+</head>
+<body>
+<div id="cur"></div><div id="cur2"></div>
+
+<nav>
+  <a href="/" class="nav-logo">PIXEL<b>/</b>TRUTH</a>
+  <ul class="nav-links-c">
+    <li><a href="/">Home</a></li>
+    <li><a href="/home">Dashboard</a></li>
     <li><a href="/login">Login</a></li>
-    <li><a href="/register">Register</a></li>
   </ul>
-  <div class="nav-status"><span class="pulse-dot"></span>ONLINE</div>
+  <div class="nav-r">
+    <div class="np"><div class="nd"></div>LIVE</div>
+    <a href="/register" class="nb o">Register</a>
+    <a href="/login" class="nb f">Sign In</a>
+  </div>
 </nav>
 
-<main class="landing-main">
-  <section class="hero-split">
-    <div class="hero-left">
-      <div class="hero-label animate-in" style="--d:0.1s">// FORENSIC AI v2.0</div>
-      <h1 class="hero-headline animate-in" style="--d:0.25s">
-        <span class="line-one">EXPOSE</span>
-        <span class="line-two">THE<em>FAKE</em></span>
-      </h1>
-      <p class="hero-sub animate-in" style="--d:0.45s">
-        Multi-model ensemble intelligence.<br>
-        Every pixel interrogated. No synthetic image escapes.
-      </p>
-      <div class="hero-ctas animate-in" style="--d:0.6s">
-        <a href="/login" class="cta-primary">
-          <span class="cta-icon">◈</span>
-          <span>SIGN IN</span>
-        </a>
-        <a href="/register" class="cta-secondary">
-          <span class="cta-icon">✦</span>
-          <span>REGISTER</span>
-        </a>
-      </div>
-      <div class="admin-link animate-in" style="--d:0.75s">
-        <a href="/admin/register">Admin portal →</a>
-      </div>
+<section class="hero">
+  <div class="hgrid"></div>
+  <div class="bl1"></div><div class="bl2"></div><div class="bl3"></div>
+  <div class="hl">
+    <div class="pre-tag">// Forensic AI System v2.0</div>
+    <div class="gt-wrap">
+      <h1 class="gt" data-text="PIXEL">PIXEL</h1>
+      <span class="gt2">TRUTH</span>
     </div>
-
-    <div class="hero-right animate-in" style="--d:0.3s">
-      <div class="scan-card">
-        <div class="scan-header">
-          <span class="scan-tag">FORENSIC SCAN</span>
-          <span class="scan-live"><span class="pulse-dot green"></span>LIVE</span>
-        </div>
-        <div class="scan-visual">
-          <div class="scan-img-wrap">
-            <div class="scan-img-placeholder">
-              <div class="img-grid"></div>
-              <div class="scan-beam"></div>
-              <div class="scan-crosshair">
-                <div class="ch-h"></div>
-                <div class="ch-v"></div>
-                <div class="ch-ring"></div>
-              </div>
-            </div>
-          </div>
-          <div class="scan-readout">
-            <div class="readout-line">
-              <span class="rl-key">FREQ SENTINEL</span>
-              <div class="rl-bar"><div class="rl-fill" style="width:89%;--c:var(--accent)"></div></div>
-              <span class="rl-val accent">89%</span>
-            </div>
-            <div class="readout-line">
-              <span class="rl-key">PATCH ORACLE</span>
-              <div class="rl-bar"><div class="rl-fill" style="width:91%;--c:var(--accent3)"></div></div>
-              <span class="rl-val green">91%</span>
-            </div>
-            <div class="readout-line">
-              <span class="rl-key">TEXTURE JUDGE</span>
-              <div class="rl-bar"><div class="rl-fill" style="width:94%;--c:var(--accent3)"></div></div>
-              <span class="rl-val green">94%</span>
-            </div>
-          </div>
-        </div>
-        <div class="scan-verdict">
-          <span class="verdict-icon">✦</span>
-          <div class="verdict-body">
-            <div class="verdict-label">AUTHENTIC</div>
-            <div class="verdict-conf">Ensemble confidence: <strong>94.7%</strong></div>
-          </div>
-          <div class="verdict-badge real">REAL</div>
-        </div>
-      </div>
+    <p class="hdesc"><strong>Three-model ensemble intelligence</strong> that tears apart synthetic images pixel by pixel. Real or fake — we always find the truth.</p>
+    <div class="ctar">
+      <a href="/login" class="cm">◈ SCAN NOW</a>
+      <a href="/register" class="cg">✦ GET ACCESS</a>
     </div>
-  </section>
-
-  <section class="metrics-bar animate-in" style="--d:0.9s">
-    <div class="metric">
-      <div class="metric-num">94.7<span>%</span></div>
-      <div class="metric-label">Accuracy</div>
-    </div>
-    <div class="metric-sep"></div>
-    <div class="metric">
-      <div class="metric-num">3</div>
-      <div class="metric-label">AI Models</div>
-    </div>
-    <div class="metric-sep"></div>
-    <div class="metric">
-      <div class="metric-num">&lt;2<span>s</span></div>
-      <div class="metric-label">Analysis Time</div>
-    </div>
-    <div class="metric-sep"></div>
-    <div class="metric">
-      <div class="metric-num">∞</div>
-      <div class="metric-label">Image Formats</div>
-    </div>
-  </section>
-</main>
-
-<footer class="site-footer">
-  <div class="footer-left">
-    <span class="footer-logo">PIXEL<em>TRUTH</em></span>
-    <span class="footer-copy">© 2025 AI FORENSIC SYSTEM</span>
+    <div class="atiny"><a href="/admin/register">Admin portal</a></div>
   </div>
-  <div class="footer-status-wrap">
-    <span class="pulse-dot green"></span>
-    <span>ALL SYSTEMS OPERATIONAL</span>
+  <div class="hr">
+    <div class="tc">
+      <div class="tbar">
+        <div class="tdot"></div><div class="tdot"></div><div class="tdot"></div>
+        <div class="ttitle">forensic_engine.exe</div>
+      </div>
+      <div class="tb">
+        <div class="tl"><span class="tp">$</span><span class="tc-t" id="tcmd">pixeltruth analyze --target portrait_001.jpg</span></div>
+        <div class="tl"><span class="to">Loading ensemble models...</span></div>
+        <div class="tl"><span class="to s">✓ FREQ SENTINEL   loaded</span></div>
+        <div class="tl"><span class="to s">✓ PATCH ORACLE    loaded</span></div>
+        <div class="tl"><span class="to s">✓ TEXTURE JUDGE   loaded</span></div>
+        <div class="tl"><span class="to">Running analysis...</span></div>
+        <div class="sviz">
+          <div class="srow"><span class="sk">FREQ SENTINEL</span><div class="sbb"><div class="sf sg" style="width:89%"></div></div><span class="sp pg">89%</span></div>
+          <div class="srow"><span class="sk">PATCH ORACLE</span><div class="sbb"><div class="sf sv" style="width:92%"></div></div><span class="sp pv">92%</span></div>
+          <div class="srow"><span class="sk">TEXTURE JUDGE</span><div class="sbb"><div class="sf sh" style="width:95%"></div></div><span class="sp ph">95%</span></div>
+        </div>
+        <div class="vb" id="tverd">
+          <div class="vl" id="tvl">◈ AUTHENTIC</div>
+          <div class="vc">CONFIDENCE <span id="tvc">94.7%</span></div>
+        </div>
+        <div class="tl" style="margin-top:12px"><span class="to w">⚡ Analysis complete in 1.34s</span></div>
+        <div class="tl"><span class="tp">$</span><span class="tcur"></span></div>
+      </div>
+    </div>
   </div>
+</section>
+
+<div class="ss">
+  <div class="si"><div class="sn ng">94.7<span style="font-size:.5em">%</span></div><div class="sl2">Detection Accuracy</div></div>
+  <div class="si"><div class="sn nv">3</div><div class="sl2">AI Models Ensemble</div></div>
+  <div class="si"><div class="sn nh">&lt;2<span style="font-size:.5em">s</span></div><div class="sl2">Analysis Time</div></div>
+  <div class="si"><div class="sn ng">∞</div><div class="sl2">Image Formats</div></div>
+</div>
+
+<section class="feats">
+  <div class="stag">// Core Intelligence</div>
+  <h2 class="stitle">THREE MODELS.<br><em>ONE VERDICT.</em></h2>
+  <div class="fg">
+    <div class="fc rev"><span class="fn2">01</span><span class="fi">⚡</span><div class="fna">FREQ SENTINEL</div><div class="fd">Decomposes images into DCT frequency domains to catch GAN artifacts and JPEG inconsistencies invisible to the human eye.</div></div>
+    <div class="fc rev"><span class="fn2">02</span><span class="fi">◈</span><div class="fna">PATCH ORACLE</div><div class="fd">Tiles the image into microscopic patches and cross-examines local texture coherence against known synthetic generation signatures.</div></div>
+    <div class="fc rev"><span class="fn2">03</span><span class="fi">⬡</span><div class="fna">TEXTURE JUDGE</div><div class="fd">Maps deep semantic texture fingerprints, exposing diffusion model blending boundaries and latent space bleeding effects.</div></div>
+  </div>
+</section>
+
+<section class="how">
+  <div class="stag">// Protocol</div>
+  <h2 class="stitle">HOW IT <em>WORKS</em></h2>
+  <div class="steps">
+    <div class="step rev"><div class="sbub">01</div><div class="stt">UPLOAD</div><div class="std">Drop any image. JPG, PNG, WEBP, BMP, TIFF. No size limits, no watermarks.</div></div>
+    <div class="step rev"><div class="sbub">02</div><div class="stt">ANALYSE</div><div class="std">All three models fire in parallel. Frequency maps, patch grids, and texture embeddings processed simultaneously.</div></div>
+    <div class="step rev"><div class="sbub">03</div><div class="stt">VERDICT</div><div class="std">Ensemble votes are weighted and calibrated. You get a probability score, confidence level, and per-model breakdown.</div></div>
+  </div>
+</section>
+
+<section class="ctab">
+  <div class="bt">READY TO FIND<br><span class="acc">THE TRUTH?</span></div>
+  <div class="bs">// No subscriptions. No limits. Just forensic precision.</div>
+  <div class="cp">
+    <a href="/register" class="cm" style="font-size:1rem">◈ CREATE FREE ACCOUNT</a>
+    <a href="/login" class="cg">Already have access →</a>
+  </div>
+</section>
+
+<footer>
+  <div class="fl">PIXEL/TRUTH</div>
+  <div class="fc2">© 2025 AI Forensic System</div>
+  <div class="fll"><a href="/login">Login</a><a href="/register">Register</a><a href="/admin/register">Admin</a></div>
 </footer>
 
 <script src="{{ url_for('static', filename='shared.js') }}"></script>
-<script src="{{url_for('static', filename='landing.js')}}"></script> 
+<script>
+// CURSOR
+const cur=document.getElementById('cur'),cur2=document.getElementById('cur2');
+let mx=window.innerWidth/2,my=window.innerHeight/2,lx=mx,ly=my;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;cur.style.left=mx+'px';cur.style.top=my+'px'});
+(function loop(){lx+=(mx-lx)*.11;ly+=(my-ly)*.11;cur2.style.left=lx+'px';cur2.style.top=ly+'px';requestAnimationFrame(loop)})();
+document.querySelectorAll('a,button').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{cur.style.cssText+=';width:18px;height:18px;background:var(--hot);box-shadow:0 0 30px var(--hot)'});
+  el.addEventListener('mouseleave',()=>{cur.style.cssText+=';width:10px;height:10px;background:var(--glow);box-shadow:0 0 20px var(--glow),0 0 40px rgba(0,245,255,0.4)'});
+});
+
+// SCROLL REVEALS
+const obs=new IntersectionObserver(e=>{e.forEach((en,i)=>{if(en.isIntersecting)setTimeout(()=>en.target.classList.add('in'),i*120)})},{threshold:.15});
+document.querySelectorAll('.rev').forEach(el=>obs.observe(el));
+
+// TERMINAL CYCLE
+const lines=[['portrait_001.jpg','REAL','94.7'],['selfie_edit.png','FAKE','98.2'],['landscape_raw.jpg','REAL','91.3'],['ai_face_07.jpg','FAKE','97.6']];
+let li=0;
+function cycle(){
+  const[f,v,c]=lines[li%lines.length];
+  const cmd=document.getElementById('tcmd'),verd=document.getElementById('tverd'),vl=document.getElementById('tvl'),vc=document.getElementById('tvc');
+  if(cmd)cmd.textContent=`pixeltruth analyze --target ${f}`;
+  const isR=v==='REAL';
+  if(verd){verd.className='vb'+(isR?'':' fake')}
+  if(vl){vl.textContent=isR?'◈ AUTHENTIC':'⚠ SYNTHETIC'}
+  if(vc)vc.textContent=c+'%';
+  li++;
+}
+setInterval(cycle,3500);
+</script>
 </body>
 </html>

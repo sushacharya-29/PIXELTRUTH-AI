@@ -4,8 +4,8 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1.0" />
 <title>LOGIN — PIXEL TRUTH</title>
-<!-- FIX: Static path corrected from "auth.css" to Flask static route -->
-<link rel="stylesheet" href="/static/css/auth.css" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='shared.css') }}"/>
+  <link rel="stylesheet" href="{{ url_for('static', filename='auth.css') }}"/>
 <style>
 /* Login-specific: mode switcher */
 .mode-switch {
@@ -47,9 +47,10 @@
 </head>
 <body>
 
+<div id="cursor-dot"></div>
 <div id="cursor-trail"></div>
 
-<!-- NAV — FIX: hrefs updated to Flask routes -->
+<!-- NAV -->
 <nav>
   <a class="nav-logo" href="/"><span>PIXEL</span> TRUTH</a>
   <ul class="nav-links">
@@ -134,7 +135,7 @@
     <!-- DIVIDER -->
     <div class="auth-divider"><span>No account yet?</span></div>
 
-    <!-- LINKS — FIX: hrefs updated to Flask routes -->
+    <!-- LINKS -->
     <div class="auth-links">
       <a href="/register" class="auth-link accent">→ Create account</a>
       <a href="#" class="forgot-link" onclick="handleForgot(event)">Forgot password?</a>
@@ -144,9 +145,8 @@
 </div>
 
 <footer class="auth-footer">© 2025 PIXEL TRUTH — AI FORENSIC SYSTEM</footer>
-
-<!-- FIX: Static path corrected from "auth.js" to Flask static route -->
-<script src="/static/js/auth.js"></script>
+<script src="{{ url_for('static', filename='js/shared.js') }}"></script>
+<script src="{{ url_for('static', filename='js/auth.js') }}"></script>
 <script>
 // ─── MODE SWITCHER ────────────────────────────────────
 let currentMode = 'user';
@@ -252,7 +252,7 @@ document.getElementById('login-form').addEventListener('submit', async function(
       setBtnLoading(btn, false);
     }
   } catch (err) {
-    showAlert('login-alert', '⚠ Cannot connect to server. Check backend is running on port 5000.', 'info');
+    showAlert('login-alert', '⚠ Cannot connect to server. Check backend is running.', 'info');
     setBtnLoading(btn, false);
   }
 });
