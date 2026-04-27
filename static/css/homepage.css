@@ -209,7 +209,7 @@
   display: flex; gap: 28px; flex-wrap: wrap;
   margin-bottom: 12px;
 }
-.vp-item { }
+/*.vp-item { }*/
 .vp-label {
   font-size: 0.52rem; letter-spacing: 2px; text-transform: uppercase;
   color: var(--muted); margin-bottom: 4px;
@@ -237,7 +237,7 @@
 }
 
 /* ── QUICK GUIDE ── */
-.quick-guide { }
+/*.quick-guide { }*/
 .guide-grid {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 0;
   border: 1px solid var(--border);
