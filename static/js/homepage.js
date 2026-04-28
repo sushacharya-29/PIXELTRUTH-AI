@@ -1,6 +1,6 @@
 /**
  * PIXEL TRUTH — homepage.js
- * Upload handling, scan animation, result rendering
+ * Upload handling, scan animation, result rendering with image preview
  */
 
 (function() {
@@ -57,6 +57,25 @@
     resultPanel.style.display = 'block';
     resultBody.innerHTML = '';
 
+    // ── Image preview ────────────────────────────────────────────
+    const previewWrap = document.createElement('div');
+    previewWrap.className = 'image-preview-wrap';
+
+    const objectURL = URL.createObjectURL(file);
+    const img = document.createElement('img');
+    img.src = objectURL;
+    img.className = 'preview-img';
+    img.alt = file.name;
+
+    const imgLabel = document.createElement('div');
+    imgLabel.className = 'preview-label';
+    imgLabel.textContent = `${file.name}  ·  ${(file.size / 1024).toFixed(1)} KB`;
+
+    previewWrap.appendChild(img);
+    previewWrap.appendChild(imgLabel);
+    resultBody.appendChild(previewWrap);
+
+    // ── Scan log lines ───────────────────────────────────────────
     const logWrap = document.createElement('div');
     logWrap.className = 'scan-log-lines';
     resultBody.appendChild(logWrap);
@@ -70,12 +89,12 @@
         i++;
       } else {
         clearInterval(interval);
-        await callAPI(file);
+        await callAPI(file, objectURL);
       }
     }, 300);
   }
 
-  async function callAPI(file) {
+  async function callAPI(file, objectURL) {
     const formData = new FormData();
     formData.append('image', file);
 
@@ -88,7 +107,7 @@
       const data = await res.json();
 
       if (res.ok && data.success) {
-        renderVerdict(data, file);
+        renderVerdict(data, file, objectURL);
       } else {
         renderError(data.error || 'Detection failed', file);
       }
@@ -97,32 +116,36 @@
     }
   }
 
-  function renderVerdict(data, file) {
-    const isReal   = (data.verdict || '').toLowerCase().includes('real');
+  function renderVerdict(data, file, objectURL) {
+    const isReal   = (data.verdict || '').toUpperCase() === 'REAL';
     const conf     = data.confidence || 'N/A';
     const method   = (data.method || 'unknown').toUpperCase();
     const realProb = data.real_probability != null ? (data.real_probability * 100).toFixed(1) : '—';
     const aiProb   = data.ai_probability   != null ? (data.ai_probability   * 100).toFixed(1) : '—';
 
-    const cls   = isReal ? 'real-verdict' : 'fake-verdict';
-    const label = isReal ? 'AUTHENTIC' : 'SYNTHETIC';
-    const icon  = isReal ? '✦' : '◈';
-    const textCls = isReal ? 'real-text' : 'fake-text';
+    const cls     = isReal ? 'real-verdict' : 'fake-verdict';
+    const label   = isReal ? 'AUTHENTIC'    : 'SYNTHETIC';
+    const icon    = isReal ? '✦'            : '◈';
+    const textCls = isReal ? 'real-text'    : 'fake-text';
 
     const spatial   = data.models?.spatial;
     const frequency = data.models?.frequency;
 
     const modelsHtml = (spatial || frequency) ? `
       <div class="verdict-models">
-        ${spatial   ? `<div class="vm-item">SPATIAL <strong>${(spatial.real_probability*100).toFixed(1)}% real</strong></div>` : ''}
-        ${frequency ? `<div class="vm-item">FREQUENCY <strong>${(frequency.real_probability*100).toFixed(1)}% real</strong></div>` : ''}
+        ${spatial   ? `<div class="vm-item">SPATIAL <strong>${(spatial.real_probability * 100).toFixed(1)}% real</strong></div>` : ''}
+        ${frequency ? `<div class="vm-item">FREQUENCY <strong>${(frequency.real_probability * 100).toFixed(1)}% real</strong></div>` : ''}
       </div>` : '';
+
+    // ── Replace scan log lines with verdict ──────────────────────
+    const logWrap = resultBody.querySelector('.scan-log-lines');
+    if (logWrap) logWrap.remove();
 
     const el = document.createElement('div');
     el.className = `verdict-display ${cls}`;
     el.innerHTML = `
       <div class="verdict-top ${textCls}">${icon} VERDICT: ${label}</div>
-      <div class="verdict-meta">${file.name} · ${(file.size/1024).toFixed(1)}KB · ${method}</div>
+      <div class="verdict-meta">${method} · ${conf} confidence</div>
       <div class="verdict-probs">
         <div class="vp-item">
           <div class="vp-label">REAL PROBABILITY</div>
@@ -137,14 +160,34 @@
           <div class="vp-num blue">${conf}</div>
         </div>
       </div>
-      ${modelsHtml}`;
+      ${modelsHtml}
+      <div class="verdict-bar-wrap">
+        <div class="verdict-bar">
+          <div class="verdict-bar-fill ${isReal ? 'bar-real' : 'bar-fake'}"
+               style="width:${isReal ? realProb : aiProb}%"></div>
+        </div>
+        <div class="verdict-bar-labels">
+          <span class="green">REAL ${realProb}%</span>
+          <span class="red">AI ${aiProb}%</span>
+        </div>
+      </div>`;
 
     resultBody.appendChild(el);
     addLogEntry(file.name, isReal);
     updateStats(isReal);
+
+    // Release object URL after image is displayed
+    if (objectURL) {
+      const previewImg = resultBody.querySelector('.preview-img');
+      if (!previewImg || previewImg.complete) URL.revokeObjectURL(objectURL);
+      else previewImg.onload = () => URL.revokeObjectURL(objectURL);
+    }
   }
 
   function renderError(message, file) {
+    const logWrap = resultBody.querySelector('.scan-log-lines');
+    if (logWrap) logWrap.remove();
+
     const el = document.createElement('div');
     el.className = 'error-display';
     el.innerHTML = `⚠ ${message}<br><span style="opacity:0.6;font-size:0.58rem">${file.name}</span>`;
@@ -163,7 +206,6 @@
 
     scanLog.insertBefore(entry, scanLog.firstChild);
 
-    // Keep max 20 entries
     const entries = scanLog.querySelectorAll('.log-entry');
     if (entries.length > 20) entries[entries.length - 1].remove();
   }

@@ -141,7 +141,7 @@ class RandomGaussianNoise:
 
 # ── Dataset ────────────────────────────────────────────────────────────────────
 
-VALID_EXTS = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif', '.webp', '.gif'}
+VALID_EXTS = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.avif','.tif', '.webp', '.gif'}
 CLASS_NAMES = ['fake', 'real']  # FAKE=0, REAL=1
 
 

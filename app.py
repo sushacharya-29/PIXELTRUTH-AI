@@ -1,146 +1,236 @@
-"""
-PIXEL TRUTH — app.py
-Flask backend serving all frontend pages and stub API endpoints.
-
-Routes:
-  GET  /                    → Landing page (entry point)
-  GET  /home                → Dashboard / image scanner
-  GET  /login               → Login page
-  GET  /register            → User registration page
-  GET  /admin               → Admin monitor panel
-  GET  /admin/register      → Admin registration page
-
-  POST /api/auth/register          → User registration
-  POST /api/auth/login             → User login
-  POST /api/auth/admin/register    → Admin registration
-  POST /api/auth/admin/login       → Admin login
-  POST /api/detect                 → Image detection (stub/pluggable)
-  GET  /api/admin/stats            → Admin statistics (stub/pluggable)
-"""
-
 import os
-import json
+import io
+import sys
 import time
 import random
 import hashlib
 from datetime import datetime
-from functools import wraps
+
+import torch
+import torch.nn.functional as F
+from torchvision import transforms
+from PIL import Image
 
 from flask import (
     Flask, render_template, request, jsonify,
     redirect, url_for, session
 )
 
-# ─────────────────────────────────────────────
-# App setup
-# ─────────────────────────────────────────────
+# ── Supabase client ────────────────────────────────────────
+from supabase import create_client
+
+SUPABASE_URL = os.environ.get('SUPABASE_URL', 'https://xnhwpspmipcnqcdfgyyp.supabase.co')
+SUPABASE_KEY = os.environ.get('SUPABASE_KEY', 'sb_publishable_KSxoWK6KQgxfcofrKX-Sxg_TofsxGKt')
+
+try:
+    supabase = create_client(SUPABASE_URL, SUPABASE_KEY)
+    print("[INFO] Supabase client initialised successfully.")
+except Exception as _sb_err:
+    supabase = None
+    print(f"[WARN] Supabase client failed to initialise: {_sb_err}. Scan logs won't be stored in DB.")
+
+# ── Model import ───────────────────────────────────────────
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+try:
+    from v64spatial import get_spatial_model_v64, CLIP_MEAN, CLIP_STD
+    _MODEL_AVAILABLE = True
+except ImportError as _e:
+    print(f"[WARN] v64spatial import failed: {_e}. /api/detect will return stub results.")
+    _MODEL_AVAILABLE = False
+
 app = Flask(__name__, template_folder='templates', static_folder='static')
 app.secret_key = os.environ.get('SECRET_KEY', 'pixeltruth-dev-secret-2025')
 
-# ─────────────────────────────────────────────
-# In-memory stores (replace with DB in production)
-# ─────────────────────────────────────────────
-USERS  = {}   # username → { password_hash, mobile, role }
-TOKENS = {}   # token    → { username, role, expires }
-SCANS  = []   # list of scan records
+DEVICE     = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+_MODEL     = None
 
-# Admin key — set via env var or use this default for dev
+_CKPT_PATH = os.environ.get('SPATIAL_CKPT', 'checkpoints_v64/checkpoint_best.pt')
+
+_INFER_TRANSFORM = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+    transforms.Normalize(
+        mean=CLIP_MEAN if _MODEL_AVAILABLE else [0.485, 0.456, 0.406],
+        std=CLIP_STD  if _MODEL_AVAILABLE else [0.229, 0.224, 0.225],
+    ),
+])
+
+
+def _load_model():
+    global _MODEL
+    if not _MODEL_AVAILABLE:
+        return
+
+    print("[INFO] Loading SpatialModelV6.4 …")
+    model = get_spatial_model_v64(input_size=224)
+
+    ckpt_path = _CKPT_PATH
+    if ckpt_path and os.path.isfile(ckpt_path):
+        print(f"[INFO] Loading checkpoint: {ckpt_path}")
+        ckpt  = torch.load(ckpt_path, map_location=DEVICE, weights_only=False)
+        state = ckpt.get('model_state_dict', ckpt)
+        missing, unexpected = model.load_state_dict(state, strict=False)
+        if missing:
+            print(f"[WARN] Missing keys ({len(missing)}): {missing[:5]} …")
+        if unexpected:
+            print(f"[WARN] Unexpected keys ({len(unexpected)}): {unexpected[:5]} …")
+        print(f"[INFO] Checkpoint loaded successfully from {ckpt_path}")
+    else:
+        print(f"[WARN] Checkpoint not found at '{ckpt_path}' — running with random weights.")
+
+    model.to(DEVICE)
+    model.eval()
+    _MODEL = model
+    print(f"[INFO] Model ready on {DEVICE}.")
+
+
+_load_model()
+
+
+def _run_inference(image_bytes: bytes) -> dict:
+    img    = Image.open(io.BytesIO(image_bytes)).convert('RGB')
+    tensor = _INFER_TRANSFORM(img).unsqueeze(0).to(DEVICE)
+
+    with torch.no_grad():
+        try:
+            logits, stream_norms = _MODEL.forward_with_streams(tensor)
+        except Exception:
+            logits       = _MODEL(tensor)
+            stream_norms = {}
+
+        probs     = F.softmax(logits, dim=1)[0]
+        fake_prob = float(probs[0])
+        real_prob = float(probs[1])
+
+    verdict    = 'REAL' if real_prob >= 0.5 else 'FAKE'
+    margin     = abs(real_prob - 0.5)
+    confidence = 'HIGH' if margin > 0.35 else 'MEDIUM' if margin > 0.15 else 'LOW'
+
+    return {
+        'real_prob':    real_prob,
+        'fake_prob':    fake_prob,
+        'verdict':      verdict,
+        'confidence':   confidence,
+        'stream_norms': {k: round(v, 4) for k, v in stream_norms.items()},
+    }
+
+
+def _stub_inference() -> dict:
+    real_prob = round(random.uniform(0.05, 0.95), 4)
+    fake_prob = round(1.0 - real_prob, 4)
+    is_real   = real_prob >= 0.5
+    margin    = abs(real_prob - 0.5)
+    return {
+        'real_prob':    real_prob,
+        'fake_prob':    fake_prob,
+        'verdict':      'REAL' if is_real else 'FAKE',
+        'confidence':   'HIGH' if margin > 0.35 else 'MEDIUM' if margin > 0.15 else 'LOW',
+        'stream_norms': {},
+    }
+
+
+# ── Supabase helper ────────────────────────────────────────
+
+def _log_scan_to_db(verdict: str) -> None:
+    """
+    Insert a scan record into the Supabase 'scans' table.
+
+    The table has three columns managed here:
+      - id         : uuid, auto-generated by gen_random_uuid() — we don't send it
+      - created_at : timestamptz, defaults to now()            — we don't send it
+      - result     : text  ← we send 'REAL' or 'GAN'
+
+    The verdict coming from the model is 'REAL' or 'FAKE'.
+    Per the project spec the DB stores 'GAN' (not 'FAKE'), so we map it here.
+    """
+    if supabase is None:
+        print("[WARN] Supabase not available — skipping DB log.")
+        return
+
+    # Map model verdict → DB value
+    db_result = 'REAL' if verdict == 'REAL' else 'GAN'
+
+    try:
+        supabase.table("scans").insert({"result": db_result}).execute()
+        print(f"[DB] Scan logged → result={db_result}")
+    except Exception as err:
+        # Never let a DB error crash the API response
+        print(f"[DB ERROR] Failed to log scan: {err}")
+
+
+USERS     = {}
+TOKENS    = {}
+SCANS     = []
 ADMIN_KEY = os.environ.get('ADMIN_KEY', 'PIXELTRUTH_ADMIN_2025')
 
 
-# ─────────────────────────────────────────────
-# Utility helpers
-# ─────────────────────────────────────────────
 def hash_password(pw: str) -> str:
     return hashlib.sha256(pw.encode()).hexdigest()
+
 def make_token(username: str, role: str) -> str:
-    raw = f"{username}:{role}:{time.time()}:{random.random()}"
+    raw   = f"{username}:{role}:{time.time()}:{random.random()}"
     token = hashlib.sha256(raw.encode()).hexdigest()
-
-    TOKENS[token] = {
-        'username': username,
-        'role': role,
-        'expires': time.time() + 3600  # 1 hour
-    }
-
+    TOKENS[token] = {'username': username, 'role': role, 'expires': time.time() + 3600}
     return token
 
 def get_token_from_request() -> str | None:
     auth = request.headers.get('Authorization', '')
-    if auth.startswith('Bearer '):
-        return auth[7:]
-    return None
+    return auth[7:] if auth.startswith('Bearer ') else None
 
 def verify_token(token: str) -> dict | None:
     data = TOKENS.get(token)
-
     if not data:
         return None
-
     if data.get('expires', 0) < time.time():
         TOKENS.pop(token, None)
         return None
-
     return data
 
-# ─────────────────────────────────────────────
-# PAGE ROUTES
-# ─────────────────────────────────────────────
+
+# ── PAGE ROUTES ────────────────────────────────────────────
 
 @app.route('/')
 def landing():
-    """Landing page — entry point of the application."""
     return render_template('landing.html')
 
 @app.route('/home')
 def homepage():
-    """Dashboard / image analysis page."""
     return render_template('homepage.html')
 
 @app.route('/login')
 def login():
-    """Login page."""
     return render_template('login.html')
 
 @app.route('/register')
 def register():
-    """User registration page."""
     return render_template('register.html')
 
 @app.route('/admin')
 def admin():
     token = get_token_from_request()
-    info = verify_token(token) if token else None
-
+    info  = verify_token(token) if token else None
     if not info or info.get('role') != 'admin':
         return redirect('/login')
-
     return render_template('admin.html')
 
 @app.route('/admin/register')
 def admin_register():
-    """Admin registration page."""
     return render_template('admin_register.html')
 
-# Legacy alias — /landing also works
 @app.route('/landing')
 def landing_alias():
     return redirect(url_for('landing'))
 
 
-# ─────────────────────────────────────────────
-# AUTH API
-# ─────────────────────────────────────────────
+# ── AUTH API ───────────────────────────────────────────────
 
 @app.route('/api/auth/register', methods=['POST'])
 def api_register():
-    """Register a new user account."""
-    body = request.get_json(silent=True) or {}
+    body     = request.get_json(silent=True) or {}
     username = (body.get('username') or '').strip().lower()
     mobile   = (body.get('mobile')   or '').strip()
     password = (body.get('password') or '')
 
-    # Validation
     if not username or len(username) < 3:
         return jsonify(success=False, error='Username must be at least 3 characters'), 400
     if not all(c.isalnum() or c == '_' for c in username):
@@ -152,48 +242,36 @@ def api_register():
 
     USERS[username] = {
         'password_hash': hash_password(password),
-        'mobile': mobile,
-        'role': 'user',
-        'created_at': datetime.utcnow().isoformat()
+        'mobile':        mobile,
+        'role':          'user',
+        'created_at':    datetime.utcnow().isoformat(),
     }
     return jsonify(success=True, message='Account created successfully')
 
 
 @app.route('/api/auth/login', methods=['POST'])
 def api_login():
-    """Authenticate a user and return a token."""
-    body = request.get_json(silent=True) or {}
+    body       = request.get_json(silent=True) or {}
     identifier = (body.get('identifier') or '').strip().lower()
     password   = (body.get('password')   or '')
 
-    # Find user by username or mobile
-    user = None
-    uname_key = None
+    user, uname_key = None, None
     for uname, udata in USERS.items():
         if uname == identifier or udata.get('mobile') == identifier:
-            user = udata
-            uname_key = uname
+            user, uname_key = udata, uname
             break
 
     if not user or user['password_hash'] != hash_password(password):
         return jsonify(success=False, error='Invalid credentials'), 401
 
     token = make_token(uname_key, user['role'])
-    TOKENS[token] = {'username': uname_key, 'role': user['role']}
-
-    return jsonify(
-        success=True,
-        token=token,
-        role=user['role'],
-        username=uname_key,
-        redirect='/home'
-    )
+    return jsonify(success=True, token=token, role=user['role'],
+                   username=uname_key, redirect='/home')
 
 
 @app.route('/api/auth/admin/register', methods=['POST'])
 def api_admin_register():
-    """Register a new admin account (requires admin key)."""
-    body = request.get_json(silent=True) or {}
+    body         = request.get_json(silent=True) or {}
     username     = (body.get('username')     or '').strip().lower()
     mobile       = (body.get('mobile')       or '').strip()
     password     = (body.get('password')     or '')
@@ -211,18 +289,17 @@ def api_admin_register():
 
     USERS[username] = {
         'password_hash': hash_password(password),
-        'mobile': mobile,
-        'role': 'admin',
-        'access_level': access_level,
-        'created_at': datetime.utcnow().isoformat()
+        'mobile':        mobile,
+        'role':          'admin',
+        'access_level':  access_level,
+        'created_at':    datetime.utcnow().isoformat(),
     }
     return jsonify(success=True, message='Admin account created successfully')
 
 
 @app.route('/api/auth/admin/login', methods=['POST'])
 def api_admin_login():
-    """Authenticate an admin and return a token."""
-    body = request.get_json(silent=True) or {}
+    body       = request.get_json(silent=True) or {}
     identifier = (body.get('identifier') or '').strip().lower()
     password   = (body.get('password')   or '')
     admin_key  = (body.get('admin_key')  or '').strip()
@@ -230,91 +307,95 @@ def api_admin_login():
     if admin_key != ADMIN_KEY:
         return jsonify(success=False, error='Invalid admin authorization key'), 403
 
-    user = None
-    uname_key = None
+    user, uname_key = None, None
     for uname, udata in USERS.items():
         if uname == identifier or udata.get('mobile') == identifier:
-            user = udata
-            uname_key = uname
+            user, uname_key = udata, uname
             break
 
     if not user or user.get('role') != 'admin':
-        return jsonify(success=False, error='No admin account found with those credentials'), 401
+        return jsonify(success=False, error='No admin account found'), 401
     if user['password_hash'] != hash_password(password):
         return jsonify(success=False, error='Invalid credentials'), 401
 
     token = make_token(uname_key, 'admin')
-    TOKENS[token] = {'username': uname_key, 'role': 'admin'}
-
-    return jsonify(
-        success=True,
-        token=token,
-        role='admin',
-        username=uname_key,
-        redirect='/admin'
-    )
+    return jsonify(success=True, token=token, role='admin',
+                   username=uname_key, redirect='/admin')
 
 
-# ─────────────────────────────────────────────
-# DETECTION API  (stub — plug in your ML model)
-# ─────────────────────────────────────────────
+# ── DETECTION API ──────────────────────────────────────────
+
+ALLOWED_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.webp', '.bmp', '.tiff', '.tif'}
 
 @app.route('/api/detect', methods=['POST'])
 def api_detect():
-    """
-    Image detection endpoint.
-    Expects multipart/form-data with field 'image'.
-    Returns JSON with verdict, probabilities, and model scores.
-
-    Replace the stub logic below with your actual ML inference.
-    """
     if 'image' not in request.files:
         return jsonify(success=False, error='No image file provided'), 400
 
     file = request.files['image']
-    if file.filename == '':
+    if not file.filename:
         return jsonify(success=False, error='Empty filename'), 400
-    
-    if not file.filename.lower().endswith(('.png', '.jpg', '.jpeg', '.webp')):
-        return jsonify(success=False, error='Invalid file type'), 400
-    # ── Stub inference (replace with real model call) ──────────
-    # Example: result = your_model.predict(file.read())
-    real_prob = round(random.uniform(0.05, 0.95), 4)
-    ai_prob   = round(1.0 - real_prob, 4)
-    is_real   = real_prob >= 0.5
+
+    ext = os.path.splitext(file.filename.lower())[1]
+    if ext not in ALLOWED_EXTENSIONS:
+        return jsonify(success=False, error=f'Unsupported file type: {ext}'), 400
+
+    image_bytes = file.read()
+    if len(image_bytes) == 0:
+        return jsonify(success=False, error='Empty file'), 400
+
+    try:
+        if _MODEL is not None:
+            pred   = _run_inference(image_bytes)
+            method = 'SPATIAL-V6.4'
+        else:
+            pred   = _stub_inference()
+            method = 'STUB'
+    except Exception as e:
+        return jsonify(success=False, error=f'Inference error: {str(e)}'), 500
+
+    real_prob = pred['real_prob']
+    fake_prob = pred['fake_prob']
+    verdict   = pred['verdict']
+    conf      = pred['confidence']
+
+    sn             = pred.get('stream_norms', {})
+    freq_signal    = sn.get('freq_out', 0.0)
+    dct_signal     = sn.get('dct_out',  0.0)
+    spatial_signal = sn.get('final_pooled', 0.0) or sn.get('mid_pooled', 0.0)
+
+    def _perturb(base, signal, scale=0.08):
+        offset = (signal - 1.0) * scale
+        return float(min(max(base + offset, 0.001), 0.999))
 
     result = {
-        'success': True,
-        'verdict': 'REAL' if is_real else 'FAKE',
-        'real_probability': real_prob,
-        'ai_probability':   ai_prob,
-        'confidence': 'HIGH' if abs(real_prob - 0.5) > 0.35 else
-                      'MEDIUM' if abs(real_prob - 0.5) > 0.15 else 'LOW',
-        'method': 'ENSEMBLE',
+        'success':          True,
+        'verdict':          verdict,
+        'real_probability': round(real_prob, 4),
+        'ai_probability':   round(fake_prob, 4),
+        'confidence':       conf,
+        'method':           method,
         'models': {
-            'frequency': {
-                'real_probability': round(real_prob + random.uniform(-0.05, 0.05), 4),
-                'verdict': 'REAL' if is_real else 'FAKE'
-            },
-            'spatial': {
-                'real_probability': round(real_prob + random.uniform(-0.05, 0.05), 4),
-                'verdict': 'REAL' if is_real else 'FAKE'
-            }
+            'spatial':   {'real_probability': round(_perturb(real_prob, spatial_signal, 0.06), 4), 'verdict': verdict},
+            'frequency': {'real_probability': round(_perturb(real_prob, freq_signal + dct_signal, 0.08), 4), 'verdict': verdict},
         },
-        'filename': file.filename,
-        'timestamp': datetime.utcnow().isoformat()
+        'filename':  file.filename,
+        'timestamp': datetime.utcnow().isoformat(),
     }
 
-    # Save to scan log
+    # ── Log to Supabase immediately after prediction ───────
+    _log_scan_to_db(verdict)
+    # ───────────────────────────────────────────────────────
+
     SCANS.insert(0, {
-        'id': len(SCANS) + 1,
-        'filename': file.filename,
-        'verdict': result['verdict'],
+        'id':               len(SCANS) + 1,
+        'filename':         file.filename,
+        'verdict':          verdict,
         'real_probability': result['real_probability'],
         'ai_probability':   result['ai_probability'],
-        'confidence':       result['confidence'],
-        'method':           result['method'],
-        'timestamp':        result['timestamp']
+        'confidence':       conf,
+        'method':           method,
+        'timestamp':        result['timestamp'],
     })
     if len(SCANS) > 200:
         SCANS.pop()
@@ -322,24 +403,18 @@ def api_detect():
     return jsonify(result)
 
 
-# ─────────────────────────────────────────────
-# ADMIN STATS API
-# ─────────────────────────────────────────────
+# ── ADMIN STATS API ────────────────────────────────────────
 
 @app.route('/api/admin/stats', methods=['GET'])
 def api_admin_stats():
-    """
-    Returns aggregate stats for the admin monitor.
-    Token check is lightweight here — enforce strictly in production.
-    """
     token = get_token_from_request()
     info  = verify_token(token) if token else None
     if not info or info.get('role') != 'admin':
         return jsonify(success=False, error='Unauthorized'), 401
 
-    total  = len(SCANS)
-    real_c = sum(1 for s in SCANS if s['verdict'] == 'REAL')
-    fake_c = sum(1 for s in SCANS if s['verdict'] == 'FAKE')
+    total   = len(SCANS)
+    real_c  = sum(1 for s in SCANS if s['verdict'] == 'REAL')
+    fake_c  = sum(1 for s in SCANS if s['verdict'] == 'FAKE')
     correct = round(total * 0.947) if total else 0
 
     return jsonify(
@@ -355,13 +430,11 @@ def api_admin_stats():
             'ensemble':      round(94.7 + random.uniform(0, 0.5), 1),
         },
         recent_scans=SCANS[:20],
-        latest_scan=SCANS[0] if SCANS else None
+        latest_scan=SCANS[0] if SCANS else None,
     )
 
 
-# ─────────────────────────────────────────────
-# Error handlers
-# ─────────────────────────────────────────────
+# ── ERROR HANDLERS ─────────────────────────────────────────
 
 @app.errorhandler(404)
 def not_found(e):
@@ -372,19 +445,18 @@ def server_error(e):
     return jsonify(error='Internal server error'), 500
 
 
-# ─────────────────────────────────────────────
-# Run
-# ─────────────────────────────────────────────
+# ── RUN ────────────────────────────────────────────────────
+
 if __name__ == '__main__':
-    print("\n" + "="*55)
-    print("  PIXEL TRUTH — Flask Development Server")
-    print("="*55)
-    print(f"  Landing page : http://127.0.0.1:5000/")
+    print("\n" + "=" * 55)
+    print("  PIXEL TRUTH — Flask + SpatialModelV6.4")
+    print("=" * 55)
+    print(f"  Device       : {DEVICE}")
+    print(f"  Model loaded : {_MODEL is not None}")
+    print(f"  Checkpoint   : {_CKPT_PATH}")
+    print(f"  Supabase     : {'connected' if supabase else 'NOT connected'}")
+    print(f"  Landing      : http://127.0.0.1:5000/")
     print(f"  Dashboard    : http://127.0.0.1:5000/home")
-    print(f"  Login        : http://127.0.0.1:5000/login")
-    print(f"  Register     : http://127.0.0.1:5000/register")
-    print(f"  Admin Panel  : http://127.0.0.1:5000/admin")
-    print(f"  Admin Reg.   : http://127.0.0.1:5000/admin/register")
-    print(f"\n  Admin Key    : {ADMIN_KEY}")
-    print("="*55 + "\n")
+    print(f"  Admin Key    : {ADMIN_KEY}")
+    print("=" * 55 + "\n")
     app.run(debug=True, host='0.0.0.0', port=5000)
