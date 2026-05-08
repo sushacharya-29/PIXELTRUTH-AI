@@ -1,0 +1,588 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>PIXELTRUTH — Command Center</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Barlow+Condensed:wght@300;400;600;700&family=JetBrains+Mono:wght@300;400;700&family=Syne:wght@700;800&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --void:#02040a;--dp:#060912;--panel:#0a1020;--panel2:#0f1830;
+  --bdr:#16223a;--bdr2:#1e3055;
+  --glow:#00e8ff;--hot:#ff1f5c;--volt:#c6ff00;--gold:#ffb700;
+  --dim:#607090;--text:#ccdaee;--text2:#8ba0c0;
+  --nav:60px;
+}
+html,body{height:100%}
+body{background:var(--void);color:var(--text);font-family:'JetBrains Mono',monospace;overflow-x:hidden;cursor:none}
+
+/* CURSOR */
+#c1{position:fixed;pointer-events:none;z-index:99999;width:12px;height:12px;background:var(--glow);border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 16px var(--glow);mix-blend-mode:screen;transition:width .1s,height .1s,background .1s}
+#c2{position:fixed;pointer-events:none;z-index:99998;transform:translate(-50%,-50%)}
+#c2 svg{display:block;transition:transform .2s}
+
+/* SCANLINES */
+body::before{content:'';position:fixed;inset:0;pointer-events:none;z-index:9990;background:repeating-linear-gradient(0deg,transparent,transparent 2px,rgba(0,232,255,0.005) 2px,rgba(0,232,255,0.005) 4px)}
+
+/* NAV */
+.nav{position:fixed;top:0;left:0;right:0;z-index:900;height:var(--nav);display:flex;align-items:stretch;background:rgba(2,4,10,0.95);border-bottom:1px solid var(--bdr);backdrop-filter:blur(16px)}
+.nav-brand{display:flex;align-items:center;padding:0 24px;border-right:1px solid var(--bdr);gap:12px;text-decoration:none;flex-shrink:0}
+.nav-brand-icon{width:32px;height:32px;background:var(--glow);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:.85rem;color:var(--void);letter-spacing:0;flex-shrink:0}
+.nav-brand-text{font-family:'Bebas Neue',sans-serif;font-size:1.3rem;letter-spacing:5px;color:var(--text)}
+.nav-brand-text b{color:var(--glow);font-weight:400}
+.nav-mid{flex:1;display:flex;align-items:stretch}
+.nav-tab{display:flex;align-items:center;padding:0 24px;border-right:1px solid var(--bdr);font-size:.58rem;letter-spacing:3px;text-transform:uppercase;color:var(--dim);text-decoration:none;transition:all .2s;gap:8px;white-space:nowrap}
+.nav-tab:hover{color:var(--text);background:rgba(255,255,255,0.02)}
+.nav-tab.active{color:var(--glow);border-bottom:2px solid var(--glow)}
+.nav-right{display:flex;align-items:stretch;margin-left:auto}
+.nav-user-area{display:flex;align-items:center;padding:0 20px;border-left:1px solid var(--bdr);gap:10px}
+#nav-auth-links{display:flex;align-items:center;gap:8px}
+#nav-user-info{display:none;align-items:center;gap:10px}
+#nav-username{font-size:.62rem;letter-spacing:2px;color:var(--glow);text-transform:uppercase}
+.nbtn{font-size:.58rem;letter-spacing:2px;text-transform:uppercase;padding:7px 16px;text-decoration:none;border:1px solid var(--bdr2);color:var(--text2);transition:all .2s;background:none;cursor:pointer;font-family:inherit}
+.nbtn:hover{color:var(--text);border-color:rgba(0,232,255,0.4)}
+.nbtn.accent{border-color:var(--glow);color:var(--glow)}
+.nbtn.accent:hover{background:rgba(0,232,255,0.08)}
+.nav-status-pill{display:flex;align-items:center;gap:8px;padding:0 20px;border-left:1px solid var(--bdr);font-size:.55rem;letter-spacing:2px;color:var(--volt);text-transform:uppercase}
+.spulse{width:5px;height:5px;border-radius:50%;background:var(--volt);animation:sp 1.8s ease-in-out infinite}
+@keyframes sp{0%,100%{box-shadow:0 0 0 rgba(198,255,0,0)}50%{box-shadow:0 0 10px rgba(198,255,0,0.6)}}
+
+/* LAYOUT */
+.app{display:grid;grid-template-columns:52px 1fr 280px;min-height:calc(100vh - var(--nav));margin-top:var(--nav)}
+
+/* ICON SIDEBAR */
+.icon-bar{border-right:1px solid var(--bdr);background:var(--dp);display:flex;flex-direction:column;align-items:center;padding:16px 0;gap:4px}
+.ib{width:36px;height:36px;display:flex;align-items:center;justify-content:center;font-size:1rem;color:var(--dim);transition:all .2s;cursor:pointer;position:relative;border:1px solid transparent}
+.ib:hover{color:var(--text);border-color:var(--bdr2)}
+.ib.active{color:var(--glow);border-color:rgba(0,232,255,0.3);background:rgba(0,232,255,0.06)}
+.ib::after{content:attr(data-tip);position:absolute;left:calc(100% + 10px);top:50%;transform:translateY(-50%);background:var(--panel2);border:1px solid var(--bdr2);padding:5px 10px;font-size:.52rem;letter-spacing:2px;white-space:nowrap;opacity:0;pointer-events:none;transition:opacity .2s;z-index:100}
+.ib:hover::after{opacity:1}
+.ib-sep{width:24px;height:1px;background:var(--bdr);margin:8px 0}
+
+/* MAIN AREA */
+.main{display:flex;flex-direction:column;overflow:hidden}
+
+/* HEADER BAR */
+.main-header{display:flex;align-items:center;padding:16px 24px;border-bottom:1px solid var(--bdr);gap:16px;flex-shrink:0}
+.mh-title{font-family:'Syne',sans-serif;font-size:1.1rem;letter-spacing:4px;text-transform:uppercase;color:var(--text);font-weight:800}
+.mh-sub{font-size:.58rem;letter-spacing:2px;color:var(--dim);text-transform:uppercase}
+.mh-chip{display:flex;align-items:center;gap:6px;font-size:.55rem;letter-spacing:2px;text-transform:uppercase;border:1px solid rgba(198,255,0,0.3);padding:5px 10px;color:var(--volt);background:rgba(198,255,0,0.04);margin-left:auto}
+.mh-models{display:flex;gap:8px;margin-left:12px}
+.model-pip{font-size:.52rem;letter-spacing:1.5px;padding:4px 10px;border:1px solid var(--bdr2);color:var(--dim)}
+
+/* UPLOAD ZONE */
+.upload-area{flex:1;display:flex;align-items:center;justify-content:center;position:relative;overflow:hidden}
+.bg-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(0,232,255,0.018) 1px,transparent 1px),linear-gradient(90deg,rgba(0,232,255,0.018) 1px,transparent 1px);background-size:48px 48px}
+
+.drop-zone{
+  width:min(620px,90%);
+  border:1px dashed var(--bdr2);
+  padding:64px 40px;
+  text-align:center;
+  cursor:pointer;
+  position:relative;
+  z-index:2;
+  background:rgba(6,9,18,0.8);
+  backdrop-filter:blur(8px);
+  transition:all .3s;
+}
+.drop-zone::before,.drop-zone::after{content:'';position:absolute;width:16px;height:16px;border-color:var(--glow);border-style:solid}
+.drop-zone::before{top:-1px;left:-1px;border-width:2px 0 0 2px}
+.drop-zone::after{bottom:-1px;right:-1px;border-width:0 2px 2px 0}
+.drop-zone:hover,.drop-zone.drag{border-color:rgba(0,232,255,0.5);background:rgba(0,232,255,0.03)}
+.drop-zone.drag{border-style:solid}
+
+.dz-icon{width:72px;height:72px;margin:0 auto 24px;position:relative}
+.dz-icon svg{width:100%;height:100%;color:var(--dim);transition:color .3s}
+.drop-zone:hover .dz-icon svg,.drop-zone.drag .dz-icon svg{color:var(--glow)}
+.dz-ring{position:absolute;inset:-8px;border:1px solid rgba(0,232,255,0.15);border-radius:50%;animation:dzspin 8s linear infinite}
+@keyframes dzspin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+
+.dz-title{font-family:'Syne',sans-serif;font-size:1.2rem;letter-spacing:4px;text-transform:uppercase;color:var(--text);margin-bottom:8px;font-weight:800}
+.dz-browse{color:var(--glow);cursor:pointer;border-bottom:1px solid rgba(0,232,255,0.4)}
+.dz-fmt{font-size:.58rem;letter-spacing:2px;color:var(--dim);text-transform:uppercase;margin-top:8px}
+.dz-corner{position:absolute;width:12px;height:12px;border-color:var(--bdr2);border-style:solid}
+.dz-corner.tr{top:-1px;right:-1px;border-width:1px 1px 0 0}
+.dz-corner.bl{bottom:-1px;left:-1px;border-width:0 0 1px 1px}
+
+/* RESULT PANEL */
+.result-area{display:none;flex-direction:column;overflow-y:auto;position:relative;z-index:2}
+.result-bar{display:flex;align-items:center;padding:12px 24px;border-bottom:1px solid var(--bdr);flex-shrink:0;gap:12px}
+.rb-title{font-size:.6rem;letter-spacing:3px;text-transform:uppercase;color:var(--glow)}
+.rb-close{margin-left:auto;font-size:.58rem;letter-spacing:2px;background:none;border:1px solid var(--bdr2);color:var(--dim);padding:5px 12px;cursor:pointer;font-family:inherit;transition:all .2s}
+.rb-close:hover{color:var(--hot);border-color:rgba(255,31,92,0.4)}
+.result-content{padding:24px;flex:1}
+
+/* Preview in result */
+.result-preview{margin-bottom:20px;border:1px solid var(--bdr2);overflow:hidden;position:relative}
+.result-preview img{display:block;width:100%;max-height:260px;object-fit:contain;background:var(--dp)}
+.result-preview-label{position:absolute;top:8px;left:8px;font-size:.5rem;letter-spacing:2px;text-transform:uppercase;background:rgba(2,4,10,0.85);padding:4px 8px;color:var(--dim);border:1px solid var(--bdr)}
+
+/* Verdict */
+.verdict-box{border:1px solid;padding:24px;margin-bottom:24px}
+.verdict-box.real{border-color:rgba(0,232,255,0.3);background:rgba(0,232,255,0.04)}
+.verdict-box.fake{border-color:rgba(255,31,92,0.3);background:rgba(255,31,92,0.04)}
+.vb-head{font-family:'Syne',sans-serif;font-size:2rem;letter-spacing:5px;text-transform:uppercase;font-weight:800;margin-bottom:6px}
+.vb-head.real{color:var(--glow);text-shadow:0 0 30px rgba(0,232,255,0.5)}
+.vb-head.fake{color:var(--hot);text-shadow:0 0 30px rgba(255,31,92,0.5)}
+.vb-meta{font-size:.6rem;letter-spacing:1.5px;color:var(--dim);margin-bottom:20px}
+.vb-probs{display:flex;gap:32px;flex-wrap:wrap;margin-bottom:20px}
+.vb-prob{}
+.vbp-label{font-size:.52rem;letter-spacing:2px;text-transform:uppercase;color:var(--dim);margin-bottom:6px}
+.vbp-num{font-family:'Bebas Neue',sans-serif;font-size:2.4rem;letter-spacing:2px}
+.vbp-num.g{color:var(--glow)}.vbp-num.r{color:var(--hot)}.vbp-num.v{color:var(--volt)}
+.vb-models{display:flex;gap:20px;flex-wrap:wrap;padding-top:16px;border-top:1px solid var(--bdr)}
+.vbm{font-size:.58rem;letter-spacing:1.5px;color:var(--dim)}
+.vbm strong{color:var(--text2)}
+.err-box{border:1px solid rgba(255,183,0,0.3);background:rgba(255,183,0,0.04);padding:20px;font-size:.65rem;letter-spacing:1.5px;color:var(--gold)}
+
+/* RIGHT PANEL */
+.rp{border-left:1px solid var(--bdr);background:var(--dp);display:flex;flex-direction:column;overflow:hidden}
+.rp-sec{border-bottom:1px solid var(--bdr);padding:16px}
+.rp-sec:last-child{border-bottom:none;flex:1}
+.rp-hd{font-size:.52rem;letter-spacing:3px;text-transform:uppercase;color:var(--dim);margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.rp-hd span{color:var(--glow)}
+
+/* Session stats */
+.session-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1px;background:var(--bdr);margin-bottom:0}
+.sg-item{background:var(--dp);padding:16px 12px;text-align:center}
+.sg-num{font-family:'Bebas Neue',sans-serif;font-size:2rem;line-height:1;margin-bottom:4px}
+.sg-num.def{color:var(--text)}.sg-num.g{color:var(--glow)}.sg-num.r{color:var(--hot)}
+.sg-label{font-size:.5rem;letter-spacing:2px;text-transform:uppercase;color:var(--dim)}
+
+/* Model status */
+.model-list{display:flex;flex-direction:column;gap:10px}
+.ml-item{display:flex;align-items:center;gap:10px;padding:8px 10px;border:1px solid var(--bdr);background:rgba(0,0,0,0.2)}
+.ml-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.ml-dot.on{background:var(--volt);box-shadow:0 0 6px var(--volt)}
+.ml-name{font-size:.58rem;letter-spacing:1.5px;text-transform:uppercase;flex:1;color:var(--text2)}
+.ml-acc{font-size:.58rem;color:var(--dim);margin-left:auto}
+
+/* Scan history */
+.hist-list{display:flex;flex-direction:column;gap:6px;overflow-y:auto;max-height:280px}
+.hl-empty{font-size:.6rem;color:var(--dim);letter-spacing:1.5px;text-align:center;padding:20px 0}
+.hl-item{padding:10px 12px;border-left:2px solid;background:rgba(0,0,0,0.2);animation:hlin .3s ease}
+.hl-item.real{border-color:var(--glow)}.hl-item.fake{border-color:var(--hot)}
+@keyframes hlin{from{opacity:0;transform:translateX(-8px)}to{opacity:1;transform:translateX(0)}}
+.hl-name{font-size:.58rem;letter-spacing:1px;color:var(--text2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px;margin-bottom:3px}
+.hl-verdict{font-size:.52rem;letter-spacing:2px;text-transform:uppercase}
+.hl-verdict.real{color:var(--glow)}.hl-verdict.fake{color:var(--hot)}
+
+/* Session info */
+.sess-info{display:flex;align-items:center;gap:12px;padding:14px;border:1px solid var(--bdr);background:rgba(0,0,0,0.2)}
+.si-icon{font-size:1.3rem;color:var(--dim)}
+.si-label{font-size:.5rem;letter-spacing:2px;color:var(--dim);text-transform:uppercase;margin-bottom:3px}
+.si-val{font-size:.65rem;letter-spacing:2px;color:var(--glow);text-transform:uppercase}
+
+/* UPLOADING STATE */
+.uploading{display:none;flex-direction:column;align-items:center;justify-content:center;padding:48px;position:relative;z-index:2}
+.upload-spinner{width:80px;height:80px;margin:0 auto 28px;position:relative}
+.us-ring{position:absolute;inset:0;border:2px solid var(--bdr);border-top-color:var(--glow);border-radius:50%;animation:spin 1s linear infinite}
+.us-ring2{position:absolute;inset:8px;border:1px solid var(--bdr);border-bottom-color:var(--volt);border-radius:50%;animation:spin 1.5s linear infinite reverse}
+@keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+.upload-status{font-size:.65rem;letter-spacing:2px;color:var(--glow);text-transform:uppercase;text-align:center;animation:pulse-text 1s ease-in-out infinite}
+@keyframes pulse-text{0%,100%{opacity:.6}50%{opacity:1}}
+.upload-steps{margin-top:24px;display:flex;flex-direction:column;gap:8px;width:100%;max-width:340px}
+.ustep{font-size:.58rem;letter-spacing:1.5px;color:var(--dim);display:flex;align-items:center;gap:10px}
+.ustep.done{color:var(--volt)}.ustep.active{color:var(--glow)}
+.ustep-dot{width:6px;height:6px;border-radius:50%;border:1px solid currentColor;flex-shrink:0}
+.ustep.done .ustep-dot{background:currentColor}.ustep.active .ustep-dot{animation:sp 1s ease-in-out infinite}
+
+/* RESPONSIVE */
+@media(max-width:1100px){
+  .app{grid-template-columns:52px 1fr}
+  .rp{display:none}
+}
+@media(max-width:768px){
+  .app{grid-template-columns:1fr}
+  .icon-bar{display:none}
+  .nav-mid{display:none}
+  .mh-models{display:none}
+  .drop-zone{padding:40px 24px}
+}
+@media(max-width:480px){
+  .main-header{padding:12px 16px;flex-wrap:wrap}
+  .mh-chip{margin-left:0;width:100%}
+  .result-content{padding:16px}
+}
+</style>
+</head>
+<body>
+<div id="c1"></div>
+<div id="c2">
+  <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+    <line x1="14" y1="0" x2="14" y2="8" stroke="rgba(0,232,255,0.4)" stroke-width="1"/>
+    <line x1="14" y1="20" x2="14" y2="28" stroke="rgba(0,232,255,0.4)" stroke-width="1"/>
+    <line x1="0" y1="14" x2="8" y2="14" stroke="rgba(0,232,255,0.4)" stroke-width="1"/>
+    <line x1="20" y1="14" x2="28" y2="14" stroke="rgba(0,232,255,0.4)" stroke-width="1"/>
+    <circle cx="14" cy="14" r="5" stroke="rgba(0,232,255,0.35)" stroke-width="1" fill="none"/>
+  </svg>
+</div>
+
+<!-- NAV -->
+<nav class="nav">
+  <a href="/" class="nav-brand">
+    <div class="nav-brand-icon">PT</div>
+    <div class="nav-brand-text">PIXEL<b>/</b>TRUTH</div>
+  </a>
+  <div class="nav-mid">
+    <a href="/" class="nav-tab">⬡ Home</a>
+    <a href="/home" class="nav-tab active">◈ Dashboard</a>
+  </div>
+  <div class="nav-right">
+    <div class="nav-user-area">
+      <div id="nav-auth-links">
+        <a href="/login" class="nbtn">Login</a>
+        <a href="/register" class="nbtn accent">Register</a>
+      </div>
+      <div id="nav-user-info">
+        <span id="nav-username"></span>
+        <button class="nbtn" onclick="handleLogout()">Logout</button>
+      </div>
+    </div>
+    <div class="nav-status-pill"><div class="spulse"></div>READY</div>
+  </div>
+</nav>
+
+<div class="app">
+
+  <!-- ICON SIDEBAR -->
+  <div class="icon-bar">
+    <div class="ib active" data-tip="SCAN IMAGE">◈</div>
+    <div class="ib" data-tip="BATCH SCAN">⊞</div>
+    <div class="ib" data-tip="HISTORY">⌛</div>
+    <div class="ib-sep"></div>
+    <div class="ib" data-tip="SETTINGS">⬡</div>
+  </div>
+
+  <!-- MAIN CONTENT -->
+  <div class="main">
+    <div class="main-header">
+      <div>
+        <div class="mh-title">Image Analysis</div>
+        <div class="mh-sub">// Forensic Scanner — Drop or browse to begin</div>
+      </div>
+      <div class="mh-chip"><div class="spulse"></div>BACKEND READY</div>
+      <div class="mh-models">
+        <div class="model-pip">FREQ</div>
+        <div class="model-pip">PATCH</div>
+        <div class="model-pip">TEX</div>
+      </div>
+    </div>
+
+    <!-- UPLOAD STATE -->
+    <div class="upload-area" id="upload-area">
+      <div class="bg-grid"></div>
+      <div class="drop-zone" id="drop-zone">
+        <!-- FIX: file input moved outside drop-zone click handler conflict zone, kept here for DOM proximity -->
+        <input type="file" id="fileInput" accept="image/*" style="display:none"/>
+        <div class="dz-icon">
+          <svg viewBox="0 0 56 56" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M6 44L18 26L27 37L38 18L50 44H6Z" stroke="currentColor" stroke-width="1.5"/>
+            <circle cx="42" cy="14" r="6" stroke="currentColor" stroke-width="1.5"/>
+            <path d="M2 2H54V54H2V2Z" stroke="currentColor" stroke-width="1" stroke-dasharray="5 4" opacity="0.3"/>
+          </svg>
+          <div class="dz-ring"></div>
+        </div>
+        <div class="dz-title">DROP IMAGE OR <span class="dz-browse" id="browse-btn">BROWSE</span></div>
+        <div class="dz-fmt">JPG · PNG · WEBP · BMP · TIFF</div>
+        <div class="dz-corner tr"></div>
+        <div class="dz-corner bl"></div>
+      </div>
+    </div>
+
+    <!-- UPLOADING STATE -->
+    <div class="uploading" id="uploading-state">
+      <div class="upload-spinner">
+        <div class="us-ring"></div>
+        <div class="us-ring2"></div>
+      </div>
+      <div class="upload-status" id="upload-status-text">Initializing...</div>
+      <div class="upload-steps" id="upload-steps"></div>
+    </div>
+
+    <!-- RESULT STATE -->
+    <div class="result-area" id="result-area">
+      <div class="result-bar">
+        <div class="rb-title">// Analysis Output</div>
+        <button class="rb-close" onclick="closeResult()">✕ CLEAR</button>
+      </div>
+      <div class="result-content" id="result-content"></div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div class="rp">
+    <div class="rp-sec">
+      <div class="rp-hd">Session Stats</div>
+      <div class="session-grid">
+        <div class="sg-item"><div class="sg-num def" id="ss-total">0</div><div class="sg-label">Scanned</div></div>
+        <div class="sg-item"><div class="sg-num g" id="ss-real">0</div><div class="sg-label">Real</div></div>
+        <div class="sg-item"><div class="sg-num r" id="ss-fake">0</div><div class="sg-label">Fake</div></div>
+      </div>
+    </div>
+    <div class="rp-sec">
+      <div class="rp-hd">Models <span>ONLINE</span></div>
+      <div class="model-list">
+        <div class="ml-item"><div class="ml-dot on"></div><div class="ml-name">Freq Sentinel</div><div class="ml-acc">88.4%</div></div>
+        <div class="ml-item"><div class="ml-dot on"></div><div class="ml-name">Patch Oracle</div><div class="ml-acc">91.2%</div></div>
+        <div class="ml-item"><div class="ml-dot on"></div><div class="ml-name">Texture Judge</div><div class="ml-acc">93.8%</div></div>
+      </div>
+    </div>
+    <div class="rp-sec">
+      <div class="rp-hd">Scan History</div>
+      <div class="hist-list" id="hist-list">
+        <div class="hl-empty">No scans yet</div>
+      </div>
+    </div>
+    <div class="rp-sec">
+      <div class="si-icon">⊙</div>
+      <div class="sess-info">
+        <div>
+          <div class="si-label">Session</div>
+          <div class="si-val" id="session-user">GUEST</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="{{ url_for('static', filename='shared.js') }}"></script>
+<script>
+// ── CURSOR
+const c1=document.getElementById('c1'),c2=document.getElementById('c2');
+let mx=window.innerWidth/2,my=window.innerHeight/2,lx=mx,ly=my;
+document.addEventListener('mousemove',e=>{mx=e.clientX;my=e.clientY;c1.style.left=mx+'px';c1.style.top=my+'px'});
+(function loop(){lx+=(mx-lx)*.1;ly+=(my-ly)*.1;c2.style.left=lx+'px';c2.style.top=ly+'px';requestAnimationFrame(loop)})();
+document.querySelectorAll('a,button,.ib,.nb').forEach(el=>{
+  el.addEventListener('mouseenter',()=>{c1.style.width='16px';c1.style.height='16px';c1.style.background='var(--hot)';c1.style.boxShadow='0 0 24px var(--hot)'});
+  el.addEventListener('mouseleave',()=>{c1.style.width='12px';c1.style.height='12px';c1.style.background='var(--glow)';c1.style.boxShadow='0 0 16px var(--glow)'});
+});
+document.querySelector('.drop-zone').addEventListener('mouseenter',()=>{
+  c2.querySelector('svg').style.transform='scale(1.4) rotate(45deg)';
+});
+document.querySelector('.drop-zone').addEventListener('mouseleave',()=>{
+  c2.querySelector('svg').style.transform='scale(1) rotate(0)';
+});
+
+// ── SESSION USER
+// Safe fallback if shared.js hasn't loaded or getAuthUsername isn't defined
+function safeGetAuthUsername(){try{return typeof getAuthUsername==='function'?getAuthUsername():null}catch(e){return null}}
+function safeGetAuthToken(){try{return typeof getAuthToken==='function'?getAuthToken():null}catch(e){return null}}
+const u=safeGetAuthUsername();
+if(u){
+  const su=document.getElementById('session-user');
+  if(su)su.textContent=u.toUpperCase();
+}
+
+// ── DRAG & DROP
+const dz=document.getElementById('drop-zone');
+const fi=document.getElementById('fileInput');
+
+// FIX: prevent drop-zone click from firing when clicking interactive children
+dz.addEventListener('click', e => {
+  // Don't double-trigger if browse-btn was clicked directly
+  if(e.target.id==='browse-btn') return;
+  fi.click();
+});
+document.getElementById('browse-btn').addEventListener('click', e => {
+  e.stopPropagation();
+  fi.click();
+});
+
+dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag'); });
+dz.addEventListener('dragleave', () => dz.classList.remove('drag'));
+dz.addEventListener('drop', e => {
+  e.preventDefault();
+  dz.classList.remove('drag');
+  const f = e.dataTransfer.files[0];
+  if(f) handleFile(f);
+});
+
+// FIX: single change listener, no duplication
+fi.addEventListener('change', e => {
+  const f = e.target.files[0];
+  if(f) handleFile(f);
+});
+
+// ── FILE HANDLER — captures preview URL before transitioning state
+function handleFile(file) {
+  const reader = new FileReader();
+  reader.onload = function(evt) {
+    // Store preview URL; used in renderVerdict
+    _currentPreviewURL = evt.target.result;
+    scan(file);
+  };
+  reader.readAsDataURL(file);
+}
+
+let _currentPreviewURL = null;
+
+// ── SCAN STEPS
+const STEPS=[
+  'Buffering image data...',
+  'Extracting DCT frequency map...',
+  'Running FREQ SENTINEL...',
+  'Running PATCH ORACLE...',
+  'Running TEXTURE JUDGE...',
+  'Aggregating ensemble votes...',
+  'Calibrating confidence...'
+];
+
+async function scan(file) {
+  showState('uploading');
+
+  const stepsEl = document.getElementById('upload-steps');
+  const statusEl = document.getElementById('upload-status-text');
+  stepsEl.innerHTML = '';
+
+  for(let i=0; i<STEPS.length; i++){
+    await new Promise(r => setTimeout(r, 280));
+    statusEl.textContent = STEPS[i];
+    const d = document.createElement('div');
+    d.className = 'ustep active';
+    d.innerHTML = `<div class="ustep-dot"></div>${STEPS[i]}`;
+    stepsEl.appendChild(d);
+    if(i>0){
+      const prev = stepsEl.children[i-1];
+      if(prev){ prev.className='ustep done'; prev.querySelector('.ustep-dot').style.background='currentColor'; }
+    }
+  }
+
+  // FIX: send as multipart/form-data — do NOT set Content-Type header manually
+  // (browser sets it automatically with correct boundary for FormData)
+  const fd = new FormData();
+  fd.append('image', file);   // key must match request.files['image'] in Flask
+
+  const hdr = {};
+  const tk = safeGetAuthToken();
+  if(tk) hdr['Authorization'] = 'Bearer ' + tk;
+
+  try {
+    const res = await fetch('/api/detect', { method:'POST', body:fd, headers:hdr });
+    const data = await res.json();
+    if(res.ok && data.success) renderVerdict(data, file);
+    else renderError(data.error || 'Detection failed', file);
+  } catch(e) {
+    renderError('Cannot reach backend — ensure Flask is running on port 5000', file);
+  }
+}
+
+function showState(s) {
+  // upload-area: visible only during 'upload' state
+  document.getElementById('upload-area').style.display    = s==='upload'    ? 'flex'   : 'none';
+  // uploading-state: visible only during 'uploading' state
+  document.getElementById('uploading-state').style.display = s==='uploading' ? 'flex'   : 'none';
+  // result-area: visible only during 'result' state
+  document.getElementById('result-area').style.display    = s==='result'    ? 'flex'   : 'none';
+
+  if(s==='uploading'){
+    const el = document.getElementById('uploading-state');
+    el.style.flexDirection='column';
+    el.style.alignItems='center';
+    el.style.justifyContent='center';
+  }
+  if(s==='result'){
+    document.getElementById('result-area').style.flexDirection='column';
+  }
+}
+
+function renderVerdict(data, file) {
+  showState('result');
+  const isReal = (data.verdict||'').toLowerCase().includes('real');
+  const rp = data.real_probability!=null ? (data.real_probability*100).toFixed(1) : '—';
+  const ap = data.ai_probability!=null   ? (data.ai_probability*100).toFixed(1)   : '—';
+  const conf   = (data.confidence||'N/A').toString().toUpperCase();
+  const method = (data.method||'ENSEMBLE').toUpperCase();
+  const sp = data.models?.spatial;
+  const fp = data.models?.frequency;
+
+  // FIX: preview shown inside result panel — upload-area is now hidden so
+  // the preview must live here, not inside the drop-zone
+  const previewHTML = _currentPreviewURL
+    ? `<div class="result-preview">
+        <img src="${_currentPreviewURL}" alt="${file.name}"/>
+        <div class="result-preview-label">INPUT IMAGE</div>
+       </div>`
+    : '';
+
+  document.getElementById('result-content').innerHTML = `
+    ${previewHTML}
+    <div class="verdict-box ${isReal?'real':'fake'}">
+      <div class="vb-head ${isReal?'real':'fake'}">${isReal?'◈ AUTHENTIC':'⚠ SYNTHETIC'}</div>
+      <div class="vb-meta">${file.name} · ${(file.size/1024).toFixed(1)}KB · ${method}</div>
+      <div class="vb-probs">
+        <div class="vb-prob"><div class="vbp-label">Real Probability</div><div class="vbp-num g">${rp}%</div></div>
+        <div class="vb-prob"><div class="vbp-label">AI Probability</div><div class="vbp-num r">${ap}%</div></div>
+        <div class="vb-prob"><div class="vbp-label">Confidence</div><div class="vbp-num v">${conf}</div></div>
+      </div>
+      ${(sp||fp)?`<div class="vb-models">
+        ${fp?`<div class="vbm">FREQUENCY <strong>${(fp.real_probability*100).toFixed(1)}% real</strong></div>`:''}
+        ${sp?`<div class="vbm">SPATIAL <strong>${(sp.real_probability*100).toFixed(1)}% real</strong></div>`:''}
+      </div>`:''}
+    </div>`;
+
+  addHistory(file.name, isReal);
+  updateStats(isReal);
+  // Reset for next scan
+  fi.value = '';
+  _currentPreviewURL = null;
+}
+
+function renderError(msg, file) {
+  showState('result');
+  const previewHTML = _currentPreviewURL
+    ? `<div class="result-preview">
+        <img src="${_currentPreviewURL}" alt="${file.name}"/>
+        <div class="result-preview-label">INPUT IMAGE</div>
+       </div>`
+    : '';
+  document.getElementById('result-content').innerHTML =
+    `${previewHTML}<div class="err-box">⚠ ${msg}<br><span style="opacity:.5;font-size:.55rem">${file.name}</span></div>`;
+  fi.value = '';
+  _currentPreviewURL = null;
+}
+
+let stats = {t:0, r:0, f:0};
+
+// FIX: animateCount defined inline as fallback in case shared.js doesn't provide it
+function animateCount(el, target, duration) {
+  if(!el) return;
+  // If shared.js already defined a better version globally, skip
+  if(typeof window._sharedAnimateCount === 'function') { window._sharedAnimateCount(el, target, duration); return; }
+  const start = parseInt(el.textContent)||0;
+  if(start===target){ el.textContent=target; return; }
+  const startTime = performance.now();
+  function step(now){
+    const p = Math.min((now-startTime)/duration, 1);
+    el.textContent = Math.round(start + (target-start)*p);
+    if(p<1) requestAnimationFrame(step);
+  }
+  requestAnimationFrame(step);
+}
+
+function updateStats(isReal) {
+  stats.t++; if(isReal) stats.r++; else stats.f++;
+  animateCount(document.getElementById('ss-total'), stats.t, 500);
+  animateCount(document.getElementById('ss-real'),  stats.r, 500);
+  animateCount(document.getElementById('ss-fake'),  stats.f, 500);
+}
+
+function addHistory(name, isReal) {
+  const hl = document.getElementById('hist-list');
+  const empty = hl.querySelector('.hl-empty'); if(empty) empty.remove();
+  const d = document.createElement('div');
+  d.className = `hl-item ${isReal?'real':'fake'}`;
+  d.innerHTML = `<div class="hl-name">${name}</div><div class="hl-verdict ${isReal?'real':'fake'}">${isReal?'◈ REAL':'⚠ FAKE'}</div>`;
+  hl.insertBefore(d, hl.firstChild);
+  const items = hl.querySelectorAll('.hl-item');
+  if(items.length>15) items[items.length-1].remove();
+}
+"C:\Users\User\Downloads\WhatsApp Image 2026-04-17 at 10.53.20 AM (1).jpeg"
+window.closeResult = function() { showState('upload'); };
+</script>
+</body>
+</html>
+

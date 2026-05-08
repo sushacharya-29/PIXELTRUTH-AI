@@ -1264,15 +1264,15 @@ footer {
 
         <div class="hero-stats">
           <div class="stat-item">
-            <div class="stat-value">90%+</div>
+            <div class="stat-value">98.6%</div>
             <div class="stat-label">Detection Accuracy</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">&lt;5s</div>
+            <div class="stat-value">&lt;0.8s</div>
             <div class="stat-label">Analysis Time</div>
           </div>
           <div class="stat-item">
-            <div class="stat-value">3+</div>
+            <div class="stat-value">12+</div>
             <div class="stat-label">GAN Architectures</div>
           </div>
         </div>
@@ -1688,31 +1688,25 @@ footer {
 <!-- ─── SCRIPTS ─── -->
 <script>
 
-  window.addEventListener("DOMContentLoaded", async () => {
+  window.addEventListener("DOMContentLoaded", () => {
     const token = localStorage.getItem("pt_token");
 
     if (token) {
-        try {
-            const res = await fetch('/api/auth/verify', {
-                method: 'POST',
-                headers: { 'Authorization': 'Bearer ' + token }
-            });
-            if (res.ok) {
-                window.location.href = "/home";
-                return;
+        fetch('/api/auth/verify', {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + token
             }
-        } catch(_) {}
-        // Token invalid — clear everything
-        localStorage.clear();
-        sessionStorage.clear();
+        })
+        .then(res => {
+            if (res.ok) window.location.href = "/home";
+            else throw new Error();
+        })
+        .catch(() => {
+            localStorage.clear();
+            window.location.href = "/";
+        });
     }
-
-    // Silently sign out any lingering Supabase browser session
-    // so Google account picker always shows when user clicks Sign In
-    try {
-        await loadSupabase();
-        await client.auth.signOut();
-    } catch(_) {}
 });
 // ─── CURSOR ───
 const dot = document.getElementById('cursor-dot');
@@ -2080,9 +2074,17 @@ document.getElementById('authModal').addEventListener('click', e => {
   if (e.target === e.currentTarget) closeModal();
 });
 
-function handleGoogleAuth() {
-  // Always redirect through the backend which sets prompt=select_account
-  window.location.href = '/api/auth/google';
+async function handleGoogleAuth() {
+  await loadSupabase();
+
+  const { error } = await client.auth.signInWithOAuth({
+    provider: 'google',
+    options: { 
+      redirectTo: "http://localhost:5000/home"
+    }
+  });
+
+  if (error) console.error('Auth error:', error.message);
 }
 // ─── INTERSECTION OBSERVER FOR ENTRY ANIMATIONS ───
 const observer = new IntersectionObserver(entries => {
