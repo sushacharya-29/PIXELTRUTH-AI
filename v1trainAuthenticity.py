@@ -1,106 +1,4 @@
-"""
-trainForensic.py — Training pipeline for ForensicEngine v3
-Hardware: NVIDIA RTX 2050 4GB VRAM + CUDA
-
-Dataset layout:
-  data_dir/
-    train/real/ + train/fake/
-    val/real/ + val/fake/
-
-Labels: FAKE=0, REAL=1
-
-Usage:
-  python trainForensic.py --data_dir /path/to/dataset --ckpt_dir ./checkpoints
-
-═══════════════════════════════════════════════════════════════════
-FIXES APPLIED (vs original trainForensic.py):
-═══════════════════════════════════════════════════════════════════
-
-FIX-1  CRITICAL — fgsm_perturb / pgd_perturb called model() which
-       returns raw logits ONLY from forward(), but ForensicEngine's
-       standard inference path is forward_with_entropy() → (logits, aux, comp).
-       Using model() for adversarial perturbation is correct because
-       forward() is defined specifically for single-tensor-out use.
-       HOWEVER: the original code called F.cross_entropy(model(imgs_adv), labels)
-       which IS correct for ForensicEngine because model.forward() returns
-       plain logits (not a tuple). The bug is actually the REVERSE —
-       model.forward() is safe here. But to be explicit and futureproof,
-       we now use forward_with_entropy and unpack the logits, eliminating
-       any ambiguity if forward() is ever changed.
-
-FIX-2  GRADIENT FINITE CHECK LOGIC FLAW — original code called
-       scaler.update() even when grads were non-finite (scaler skips
-       the step but still needs update()). But it also skipped
-       clip_grad_norm_ when non-finite, which is correct. The subtle
-       bug: if ANY param has a None grad (e.g. frozen params), the
-       `all(p.grad is not None and ...)` generator short-circuits
-       False even when all *active* grads are fine. Fixed by checking
-       only params that have non-None grads.
-
-FIX-3  SCHEDULER IS WEAK AFTER UNFREEZING — when backbone blocks are
-       unfrozen at unfreeze_epoch, the new 'backbone_unfrozen' param
-       group is added to the optimizer AFTER the scheduler was built.
-       LambdaLR only wraps groups present at construction time, so
-       the new group gets NO LR scheduling — it stays at its initial
-       lr forever. Fixed by rebuilding the scheduler after unfreezing,
-       preserving the cosine phase position.
-
-FIX-4  VALIDATION OOM — val_loader used batch_size*2 which can OOM on
-       4GB VRAM when model is in eval mode (no grad, but activations
-       still allocated for forward_with_streams). Fixed to use same
-       batch_size as training, with an optional --val_batch_size arg.
-
-FIX-5  NON-FINITE LOSS GUARD — if loss itself is NaN/Inf (e.g. from
-       a corrupt image producing extreme activations), the original
-       code would call loss.backward() and corrupt the model. Added
-       a guard that skips the backward pass and warns.
-
-FIX-6  AMP + ADVERSARIAL INTERACTION — adversarial perturbation runs
-       outside autocast (correct in original), but the perturbed images
-       were computed with float32 while the subsequent forward pass
-       ran under autocast (fp16). The AMP context must be explicitly
-       exited before adversarial gradient computation and re-entered
-       for the adversarial forward pass. Separated clearly.
-
-FIX-7  SCALER.UPDATE() ALWAYS CALLED — PyTorch docs require
-       scaler.update() to be called every step regardless of whether
-       scaler.step() was skipped, to allow the scale factor to recover.
-       Original was correct here, but the guard logic was wrong (FIX-2).
-       Now both concerns are cleanly separated.
-
-FIX-8  TRAIN-EPOCH ERROR MEMORY CALLED PER-SAMPLE IN A LOOP — the
-       original looped `for j in range(len(labels)): model.step_error_memory(...)`
-       calling step_error_memory one sample at a time. Each call also
-       updates the classifier bias, so bias can be adjusted multiple
-       times per batch. Fixed to batch-process error memory and call
-       bias adjustment once per batch.
-
-FIX-9  MISSING NON-FINITE GUARD FOR AUX LOSS — `aux` from
-       forward_with_entropy can be NaN if evidential heads produce
-       degenerate outputs early in training. Added a nan-guard before
-       adding aux to the total loss.
-
-FIX-10 VAL FORWARD_WITH_STREAMS CALLED WITH NO-GRAD BUT ALSO CALLS
-       STREAM ROUTER UPDATE (side effect inside no_grad) — this is fine
-       in PyTorch but updating the EMA router during validation skews
-       routing stats since val batches aren't representative of training
-       distribution. Validation now uses model.forward() + softmax for
-       clean metrics, and uses forward_with_streams only for the
-       router-reporting call every N epochs.
-
-FIX-11 EARLY STOPPING MONITOR — original monitored val bal_acc which
-       can oscillate. Added a smoothed EMA-based monitor to avoid
-       saving on lucky spikes. Best model is still saved on best
-       raw bal_acc but early stopping counter uses a stricter smoothed
-       threshold.
-
-FIX-12 OPTIMIZER PARAM GROUP DEDUPLICATION — build_optimizer assigned
-       'other' group as a catch-all for params not in any named group.
-       If generator_head params were not in any explicit group, they'd
-       end up in 'other' with full LR. Now generator_head has its own
-       group at lr*0.5 for stable auxiliary training.
-"""
-
+#v1trainAuthenticity.py
 import os, sys, io, json, math, time, random, argparse
 import numpy as np
 from tqdm import tqdm
@@ -118,7 +16,7 @@ from PIL import Image, UnidentifiedImageError, ImageFile
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
-from forensicEngine import (
+from v1authenticityEngine import (
     ForensicEngine, get_forensic_engine,
     AsymmetricFocalLoss, DeepPostprocessingAug,
     mixup_data, cutmix_data, mixup_criterion,
@@ -397,15 +295,20 @@ def balanced_accuracy(preds, labels):
 
 def build_optimizer(model: ForensicEngine, lr: float, weight_decay: float):
     """
-    FIX-12: Added explicit generator_head param group at lr*0.5.
-    Previously it fell through to 'other' and trained at full lr,
-    destabilizing the auxiliary branch during early epochs.
+    Layered learning rates for stable training on RTX 4GB.
+
+    Groups:
+      backbone         — frozen by default; very low lr when unfrozen
+      forensic_streams — SRM/DCT/FFT/Noise/JPEG; full lr (they need to adapt)
+      stream_fusion    — AR-1..4; 0.67× (moderately conservative)
+      head             — pool/cross-attn/MLP; full lr
+      classifier       — cosine head; 0.33× (stable final mapping)
+      other            — anything not matched above; full lr
     """
     backbone_params = [p for p in model.extractor.parameters() if p.requires_grad]
 
     forensic_params = []
-    for attr in ('freq_stream', 'dct_block', 'fft_stream', 'noise_block',
-                 'jpeg_block', 'ltc_stream', 'ca_stream', 'sfs_stream'):
+    for attr in ('freq_stream', 'dct_block', 'fft_stream', 'noise_block', 'jpeg_block'):
         m = getattr(model, attr, None)
         if m is not None:
             forensic_params += list(m.parameters())
@@ -418,13 +321,8 @@ def build_optimizer(model: ForensicEngine, lr: float, weight_decay: float):
                       + list(model.mlp.parameters()))
     cls_params     = list(model.classifier.parameters())
 
-    # FIX-12: explicit generator_head group
-    gen_params = []
-    if getattr(model, 'use_generator_head', False) and hasattr(model, 'generator_head'):
-        gen_params = list(model.generator_head.parameters())
-
     assigned = {id(p) for g in [backbone_params, forensic_params, fusion_params,
-                                  head_params, cls_params, gen_params] for p in g}
+                                  head_params, cls_params] for p in g}
     other = [p for p in model.parameters() if p.requires_grad and id(p) not in assigned]
 
     groups = [
@@ -433,7 +331,6 @@ def build_optimizer(model: ForensicEngine, lr: float, weight_decay: float):
         {'params': fusion_params,   'lr': lr * 0.67,   'name': 'stream_fusion'},
         {'params': head_params,     'lr': lr,           'name': 'head'},
         {'params': cls_params,      'lr': lr * 0.33,   'name': 'classifier'},
-        {'params': gen_params,      'lr': lr * 0.50,   'name': 'generator_head'},
         {'params': other,           'lr': lr,           'name': 'other'},
     ]
     return torch.optim.AdamW(
@@ -490,8 +387,9 @@ def train_epoch(model: ForensicEngine, aug, loader, optimizer, criterion,
                 e_ent = comp.get('e_ent', 0.)
                 m_ent = comp.get('m_ent', 0.)
                 f_ent = comp.get('f_ent', 0.)
-                # Negative entropy regulariser — encourages diverse patch attention
-                ent_reg = -entropy_weight * (e_ent + m_ent + f_ent)
+                # Entropy regulariser: small positive during training to encourage
+                # diverse patch attention (not negative — negative discourages diversity)
+                ent_reg = entropy_weight * (e_ent + m_ent + f_ent)
 
             if adv_eps > 0:
                 # FIX-6: adversarial perturbation runs OUTSIDE autocast.
@@ -555,7 +453,7 @@ def train_epoch(model: ForensicEngine, aug, loader, optimizer, criterion,
             e_ent = comp.get('e_ent', 0.)
             m_ent = comp.get('m_ent', 0.)
             f_ent = comp.get('f_ent', 0.)
-            ent_reg = -entropy_weight * (e_ent + m_ent + f_ent)
+            ent_reg = entropy_weight * (e_ent + m_ent + f_ent)
 
             # FIX-9: NaN aux guard
             aux_safe = aux if torch.isfinite(aux) else torch.tensor(0., device=device)
@@ -601,7 +499,7 @@ def train_epoch(model: ForensicEngine, aug, loader, optimizer, criterion,
                     float(confs[j].cpu()), _sn)
             # Single bias adjustment per batch (after recording all samples)
             delta = model.error_memory.suggest_bias_adjustment()
-            if abs(delta) > 0.015:
+            if abs(delta) > 0.008:
                 model.classifier.adapt_bias(delta)
             # Confidence tracker still updated per sample (it's just a deque append)
             for c in confs.cpu():
@@ -762,7 +660,6 @@ def train(args):
         input_size=args.input_size, use_grad_checkpoint=True,
         use_isfcr=True, use_fcw=True, n_iters=args.n_iters,
         evidential_coeff=args.evidential_coeff,
-        use_ltc=True, use_ca=True, use_sfs=True,
     ).to(device)
 
     aug = DeepPostprocessingAug(
@@ -853,7 +750,9 @@ def train(args):
 
     no_improve    = 0
     patience      = args.patience
-    _real_recall_ema = 0.
+    # Initialize to a neutral value so the collapse guard doesn't fire during the
+    # first few epochs before EMA warms up. 80.0 = "assume healthy until proven otherwise".
+    _real_recall_ema = 80.
     _rr_alpha        = 0.3
 
     print("\n",f"Training {args.epochs} epochs (start={start_epoch})")
@@ -868,10 +767,10 @@ def train(args):
         scheduler = _maybe_unfreeze(epoch, scheduler)
 
         # Adaptive class weights — only after warmup AND not in collapse
-        _in_collapse = (
-            _real_recall_ema < 15.
-            or (epoch > 2 and _real_recall_ema < 5.)
-        )
+        # Collapse guard: active when REAL recall EMA is dangerously low.
+        # Uses hysteresis — must be clearly healthy to exit guard, preventing
+        # flip-flopping when recall is hovering near the threshold.
+        _in_collapse = _real_recall_ema < 20.
         if epoch >= args.warmup_epochs and not _in_collapse:
             aw = model.error_memory.get_loss_weights(
                 [base_weights[0].item(), base_weights[1].item()])

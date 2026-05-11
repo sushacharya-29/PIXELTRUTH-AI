@@ -1,41 +1,41 @@
 """
-test_forensics.py — Comprehensive Performance Test for ForensicsAI / SpatialRobustModel
-========================================================================================
-Tests every major capability of the system:
-  1.  Checkpoint loading (latest / best / final)
-  2.  Inference correctness (predict API, forward_with_streams)
+forensicTest.py — Comprehensive Test Suite for ForensicEngine (Stable Edition)
+================================================================================
+Aligned with authenticityEngine.py. Tests every public API surface:
+
+  1.  Checkpoint loading (best / final / latest / explicit path)
+  2.  Inference correctness (predict, forward_with_streams, forward_with_entropy)
   3.  Classification metrics (Acc, Bal-Acc, AUC-ROC, F1, Precision, Recall per-class)
-  4.  Calibration quality (ECE, MCE, reliability diagram data)
+  4.  Calibration quality (ECE, MCE)
   5.  MC-Dropout uncertainty (predict_with_uncertainty)
-  6.  Adversarial robustness (FGSM ε=4/255 and ε=8/255, PGD-7)
-  7.  Stream diagnostics (gate weights, reliability, epistemic, parity_alpha)
-  8.  Explainability report (get_explainability_report)
-  9.  Generator head (forward_with_generator — GAN-type attribution)
-  10. GradCAM visual generation
+  6.  Adversarial robustness (FGSM ε=4/255 + ε=8/255, PGD-7, CW-L2)
+  7.  Stream diagnostics (gate weights, reliability, epistemic, effective, parity_alpha)
+  8.  Explainability report (get_explainability_report, routing report)
+  9.  GradCAM — generate, generate_pixel_attn_cam, generate_overlay
+  10. Error memory summary (recall/failure pattern tracking)
   11. Throughput / latency (images/sec, ms/image)
-  12. Confidence distribution analysis (FAKE vs REAL separation)
-  13. Error memory summary
-  14. NaN / degenerate input stability
-  15. Single-image inference (the deploy use-case)
+  12. Confidence distribution analysis (FAKE vs REAL, correct vs wrong)
+  13. NaN / degenerate input stability
+  14. Single-image inference (the deploy use-case)
 
 Usage:
   # Evaluate against a labelled dataset
-  python test_forensics.py \\
+  python forensicTest.py \\
       --ckpt_dir  ./checkpoints \\
       --data_dir  /path/to/test_dataset \\
       --batch_size 8 \\
       --workers   2
 
   # Single-image quick check (no dataset needed)
-  python test_forensics.py \\
+  python forensicTest.py \\
       --ckpt_dir  ./checkpoints \\
       --image     /path/to/image.jpg
 
-  # Full adversarial suite (slower)
-  python test_forensics.py \\
-      --ckpt_dir ./checkpoints \\
-      --data_dir /path/to/test_dataset \\
-      --adv_eval \\
+  # Full suite including adversarial + MC uncertainty
+  python forensicTest.py \\
+      --ckpt_dir  ./checkpoints \\
+      --data_dir  /path/to/test_dataset \\
+      --adv_eval  --mc_eval --gradcam \\
       --mc_passes 20
 
 Dataset layout (same as training):
@@ -54,32 +54,34 @@ import warnings
 from pathlib import Path
 from collections import defaultdict
 from typing import Dict, List, Optional, Tuple
-from ForensicsAI import SpatialRobustModel
+from ForensicsAI import ForensicEngine
 
 import numpy as np
 import torch
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 from torchvision import transforms
-from PIL import Image, ImageFile, UnidentifiedImageError
+from PIL import Image, ImageFile
 
 ImageFile.LOAD_TRUNCATED_IMAGES = True
 warnings.filterwarnings("ignore", category=UserWarning)
 
-# ── Make ForensicsAI importable from the same dir or via --src_dir ─────────────
+
+# ── Path helper ────────────────────────────────────────────────────────────────
 def _add_src(path: str):
     if path and path not in sys.path:
         sys.path.insert(0, path)
 
-# ── ANSI colours for terminal output ───────────────────────────────────────────
-GRN  = "\033[92m"
-YLW  = "\033[93m"
-RED  = "\033[91m"
-CYN  = "\033[96m"
-BLD  = "\033[1m"
-RST  = "\033[0m"
 
-def _ok(msg):  print(f"  {GRN}✅ {msg}{RST}")
+# ── ANSI colours ───────────────────────────────────────────────────────────────
+GRN = "\033[92m"
+YLW = "\033[93m"
+RED = "\033[91m"
+CYN = "\033[96m"
+BLD = "\033[1m"
+RST = "\033[0m"
+
+def _ok(msg):   print(f"  {GRN}✅ {msg}{RST}")
 def _warn(msg): print(f"  {YLW}⚠️  {msg}{RST}")
 def _fail(msg): print(f"  {RED}❌ {msg}{RST}")
 def _hdr(msg):  print(f"\n{BLD}{CYN}{'─'*70}\n  {msg}\n{'─'*70}{RST}")
@@ -93,38 +95,38 @@ def _sub(msg):  print(f"  {BLD}{msg}{RST}")
 def resolve_checkpoint(ckpt_dir: str, prefer: str = "best") -> Optional[str]:
     """
     Searches ckpt_dir for checkpoint files in priority order.
-    Priority: best → final → latest (checkpoint.pt) → any .pt
+    Priority: best → final → checkpoint (latest) → any .pt
     """
     d = Path(ckpt_dir)
+    if not d.is_dir():
+        return None
     candidates = {
-        "best":     d / "best.pt",
-        "final":    d / "final.pt",
-        "latest":   d / "checkpoint.pt",
+        "best":   d / "best.pt",
+        "final":  d / "final.pt",
+        "latest": d / "checkpoint.pt",
     }
     priority = ["best", "final", "latest"] if prefer == "best" else [prefer, "best", "final", "latest"]
     for key in priority:
         p = candidates.get(key)
         if p and p.exists():
             return str(p)
-    # Fallback: any .pt in the directory
     pts = sorted(d.glob("*.pt"))
     return str(pts[-1]) if pts else None
 
 
-def load_model(ckpt_path: Optional[str], device: torch.device, args) -> "SpatialRobustModel":
+def load_model(ckpt_path: Optional[str], device: torch.device, args) -> "ForensicEngine":
     """
-    Build SpatialRobustModel and load checkpoint weights (strict=False for
-    forward-compatibility when streams were pruned post-training).
+    Build ForensicEngine (Stable Edition) via get_forensic_engine() and load
+    checkpoint weights with strict=False for forward-compatibility.
     """
-    from ForensicsAI import get_spatial_robust_model, load_checkpoint
+    from authenticityEngine import get_forensic_engine, load_checkpoint, ForensicEngine
 
-    model = get_spatial_robust_model(
+    model: ForensicEngine = get_forensic_engine(
         freeze_backbone=True,
-        use_generator_head=True,
         n_iters=args.n_iters,
         use_isfcr=True,
         use_fcw=True,
-        dropout=0.0,          # deterministic for eval (MC uses train() override)
+        dropout=0.0,        # deterministic for eval; MC passes override via .train()
         drop_path_rate=0.0,
     ).to(device)
 
@@ -136,12 +138,13 @@ def load_model(ckpt_path: Optional[str], device: torch.device, args) -> "Spatial
             state = ckpt.get("model_state_dict", ckpt)
             missing, unexpected = model.load_state_dict(state, strict=False)
             if missing:
-                _warn(f"Missing keys ({len(missing)}): {missing[:5]}{'…' if len(missing)>5 else ''}")
+                _warn(f"Missing keys ({len(missing)}): {missing[:5]}{'…' if len(missing) > 5 else ''}")
             if unexpected:
-                _warn(f"Unexpected keys ({len(unexpected)}): {unexpected[:5]}{'…' if len(unexpected)>5 else ''}")
+                _warn(f"Unexpected keys ({len(unexpected)}): {unexpected[:5]}{'…' if len(unexpected) > 5 else ''}")
             epoch = ckpt.get("epoch", "?")
-            best  = ckpt.get("best_val_acc", None)
-            print(f"  Loaded checkpoint: epoch={epoch}  best_bal_acc={best}")
+            best  = ckpt.get("best_val_acc", ckpt.get("best_bal_acc", None))
+            bal   = f"{best:.4f}" if isinstance(best, float) else str(best)
+            print(f"  Loaded checkpoint: epoch={epoch}  best_bal_acc={bal}")
     else:
         _warn("No checkpoint found — running with random weights (sanity check only)")
 
@@ -154,6 +157,7 @@ def load_model(ckpt_path: Optional[str], device: torch.device, args) -> "Spatial
 # ══════════════════════════════════════════════════════════════════════════════
 
 VALID_EXTS = {'.jpg', '.jpeg', '.png', '.bmp', '.tiff', '.tif', '.webp', '.gif'}
+
 
 def _find_class_dirs(root: Path) -> Dict[int, Path]:
     dirs = {d.name.lower(): d for d in root.iterdir() if d.is_dir()}
@@ -170,20 +174,15 @@ class TestDataset(Dataset):
     def __init__(self, root: str, transform):
         self.transform = transform
         self.samples: List[Tuple[str, int]] = []
-        root_path = Path(root)
-        class_dirs = _find_class_dirs(root_path)
-        seen = set()
-        for label, class_dir in class_dirs.items():
+        seen: set = set()
+        for label, class_dir in _find_class_dirs(Path(root)).items():
             for ext in VALID_EXTS:
-                for fpath in class_dir.rglob(f'*{ext}'):
-                    if str(fpath) not in seen:
-                        seen.add(str(fpath))
-                        self.samples.append((str(fpath), label))
-                for fpath in class_dir.rglob(f'*{ext.upper()}'):
-                    if str(fpath) not in seen:
-                        seen.add(str(fpath))
-                        self.samples.append((str(fpath), label))
-        counts = defaultdict(int)
+                for fpath in list(class_dir.rglob(f'*{ext}')) + list(class_dir.rglob(f'*{ext.upper()}')):
+                    key = str(fpath)
+                    if key not in seen:
+                        seen.add(key)
+                        self.samples.append((key, label))
+        counts: Dict[int, int] = defaultdict(int)
         for _, l in self.samples:
             counts[l] += 1
         print(f"  TestDataset: FAKE={counts[0]}  REAL={counts[1]}  Total={len(self.samples)}")
@@ -200,7 +199,7 @@ class TestDataset(Dataset):
 
 
 def get_test_transform(input_size: int = 224):
-    from ForensicsAI import CLIP_MEAN, CLIP_STD
+    from authenticityEngine import CLIP_MEAN, CLIP_STD
     return transforms.Compose([
         transforms.Resize((input_size, input_size)),
         transforms.ToTensor(),
@@ -216,8 +215,7 @@ def collate_fn(batch):
 
 
 def build_loader(data_dir: str, batch_size: int, workers: int) -> DataLoader:
-    tf = get_test_transform()
-    ds = TestDataset(data_dir, tf)
+    ds = TestDataset(data_dir, get_test_transform())
     return DataLoader(
         ds, batch_size=batch_size, shuffle=False,
         num_workers=workers, pin_memory=True,
@@ -233,40 +231,36 @@ def balanced_accuracy(preds: np.ndarray, labels: np.ndarray) -> float:
     per_class = []
     for c in range(2):
         mask = labels == c
-        if mask.sum() == 0: continue
+        if mask.sum() == 0:
+            continue
         per_class.append((preds[mask] == labels[mask]).mean())
     return float(np.mean(per_class)) if per_class else 0.0
 
 
 def per_class_recall(preds: np.ndarray, labels: np.ndarray) -> Dict[str, float]:
-    result = {}
+    out = {}
     for c, name in [(0, "FAKE"), (1, "REAL")]:
         mask = labels == c
-        if mask.sum() == 0:
-            result[name] = float("nan")
-        else:
-            result[name] = float((preds[mask] == c).mean())
-    return result
+        out[name] = float((preds[mask] == c).mean()) if mask.sum() else float('nan')
+    return out
 
 
 def per_class_precision(preds: np.ndarray, labels: np.ndarray) -> Dict[str, float]:
-    result = {}
+    out = {}
     for c, name in [(0, "FAKE"), (1, "REAL")]:
         mask = preds == c
-        if mask.sum() == 0:
-            result[name] = float("nan")
-        else:
-            result[name] = float((labels[mask] == c).mean())
-    return result
+        out[name] = float((labels[mask] == c).mean()) if mask.sum() else float('nan')
+    return out
 
 
 def f1_score(prec: float, rec: float) -> float:
-    if prec + rec == 0: return 0.0
+    if prec + rec == 0:
+        return 0.0
     return 2 * prec * rec / (prec + rec)
 
 
 def roc_auc(labels: np.ndarray, scores: np.ndarray) -> float:
-    """Simple trapezoidal AUC (no sklearn required)."""
+    """Trapezoidal AUC — no sklearn required."""
     thresholds = np.linspace(0, 1, 201)
     tprs, fprs = [], []
     for t in thresholds:
@@ -282,19 +276,19 @@ def roc_auc(labels: np.ndarray, scores: np.ndarray) -> float:
     return float(np.trapz(tprs[order], fprs[order]))
 
 
-def expected_calibration_error(confs: np.ndarray, corrects: np.ndarray,
-                                n_bins: int = 10) -> Tuple[float, float]:
+def expected_calibration_error(
+    confs: np.ndarray, corrects: np.ndarray, n_bins: int = 10
+) -> Tuple[float, float]:
     """Returns (ECE, MCE)."""
-    bins   = np.linspace(0, 1, n_bins + 1)
-    ece, mce = 0.0, 0.0
+    bins = np.linspace(0, 1, n_bins + 1)
+    ece = mce = 0.0
     N = len(confs)
     for i in range(n_bins):
         lo, hi = bins[i], bins[i + 1]
         mask = (confs >= lo) & (confs < hi)
-        if mask.sum() == 0: continue
-        bin_acc  = corrects[mask].mean()
-        bin_conf = confs[mask].mean()
-        gap = abs(bin_acc - bin_conf)
+        if not mask.sum():
+            continue
+        gap = abs(corrects[mask].mean() - confs[mask].mean())
         ece += gap * mask.sum() / N
         mce  = max(mce, gap)
     return ece, mce
@@ -307,22 +301,26 @@ def expected_calibration_error(confs: np.ndarray, corrects: np.ndarray,
 @torch.no_grad()
 def evaluate(model, loader, device) -> Dict:
     """
-    Single pass over the test set.
-    Returns collected predictions, confidences, labels, stream diagnostics.
+    Single pass over the test set using forward_with_streams (the same path
+    used during training diagnostics). Collects predictions, confidences,
+    stream diagnostics, and feeds the error-learning memory.
     """
     model.eval()
     all_preds, all_labels, all_confs, all_scores = [], [], [], []
-    stream_accum: Dict[str, List[float]] = defaultdict(list)
-    gate_accum:   Dict[str, List[float]] = defaultdict(list)
-    epistemic_accum: Dict[str, List[float]] = defaultdict(list)
+    gate_accum:        Dict[str, List[float]] = defaultdict(list)
+    epistemic_accum:   Dict[str, List[float]] = defaultdict(list)
     reliability_accum: Dict[str, List[float]] = defaultdict(list)
-    parity_alphas = []
-    error_paths: List[Tuple[str, int, int, float]] = []  # (path, true, pred, conf)
+    effective_accum:   Dict[str, List[float]] = defaultdict(list)
+    parity_alphas: List[float] = []
+    error_paths: List[Tuple[str, int, int, float]] = []  # path, true, pred, conf
 
     for imgs, labels, paths in loader:
         imgs   = imgs.to(device, non_blocking=True)
         labels = labels.to(device, non_blocking=True)
 
+        # forward_with_streams: returns (logits, info_dict)
+        # info_dict carries _gate_weights, _epistemic, _reliability,
+        # _effective, _parity_alpha, stream norms — all from the latest batch
         logits, info = model.forward_with_streams(imgs)
         probs  = torch.softmax(logits, dim=1)
         preds  = probs.argmax(dim=1)
@@ -334,20 +332,24 @@ def evaluate(model, loader, device) -> Dict:
         all_confs.extend(confs.cpu().numpy().tolist())
         all_scores.extend(scores.cpu().numpy().tolist())
 
-        # Stream diagnostics
+        # Accumulate stream diagnostics
         for k, v in info.get('_gate_weights', {}).items():
-            gate_accum[k].append(v)
+            gate_accum[k].append(float(v))
         for k, v in info.get('_epistemic', {}).items():
-            epistemic_accum[k].append(v)
+            epistemic_accum[k].append(float(v))
         for k, v in info.get('_reliability', {}).items():
-            reliability_accum[k].append(v)
+            reliability_accum[k].append(float(v))
+        for k, v in info.get('_effective', {}).items():
+            effective_accum[k].append(float(v))
         parity_alphas.append(info.get('_parity_alpha', float('nan')))
 
-        # Error memory update
+        # Feed error-learning memory: model learns which stream norms correlate
+        # with false predictions and adjusts the cosine classifier bias accordingly
         model.step_error_memory(
-            labels.cpu(), preds.cpu(), confs.cpu(), info)
+            labels.cpu(), preds.cpu(), confs.cpu(), info
+        )
 
-        # Track misclassified paths
+        # Track misclassified paths for the error report
         wrong = (preds != labels).cpu()
         for i, w in enumerate(wrong):
             if w:
@@ -359,15 +361,16 @@ def evaluate(model, loader, device) -> Dict:
                 ))
 
     return {
-        'preds':    np.array(all_preds),
-        'labels':   np.array(all_labels),
-        'confs':    np.array(all_confs),
-        'scores':   np.array(all_scores),
-        'gate_weights':   {k: float(np.mean(v)) for k, v in gate_accum.items()},
-        'epistemic':      {k: float(np.mean(v)) for k, v in epistemic_accum.items()},
-        'reliability':    {k: float(np.mean(v)) for k, v in reliability_accum.items()},
-        'parity_alpha':   float(np.nanmean(parity_alphas)),
-        'error_paths':    error_paths,
+        'preds':        np.array(all_preds),
+        'labels':       np.array(all_labels),
+        'confs':        np.array(all_confs),
+        'scores':       np.array(all_scores),
+        'gate_weights': {k: float(np.mean(v)) for k, v in gate_accum.items()},
+        'epistemic':    {k: float(np.mean(v)) for k, v in epistemic_accum.items()},
+        'reliability':  {k: float(np.mean(v)) for k, v in reliability_accum.items()},
+        'effective':    {k: float(np.mean(v)) for k, v in effective_accum.items()},
+        'parity_alpha': float(np.nanmean(parity_alphas)) if parity_alphas else float('nan'),
+        'error_paths':  error_paths,
     }
 
 
@@ -375,56 +378,78 @@ def evaluate(model, loader, device) -> Dict:
 # 5.  ADVERSARIAL ROBUSTNESS
 # ══════════════════════════════════════════════════════════════════════════════
 
-def adversarial_eval(model, loader, device,
-                     fgsm_eps_list=(4/255, 8/255),
-                     pgd_eps=8/255, pgd_steps=7,
-                     max_batches=20) -> Dict:
-    """FGSM + PGD evaluation. Returns bal_acc drop and raw accuracies."""
-    from ForensicsAI import AdversarialTester
+def adversarial_eval(
+    model, loader, device,
+    fgsm_eps_list=(4/255, 8/255),
+    pgd_eps=8/255, pgd_steps=7,
+    cw_batches=5,
+    max_batches=20,
+) -> Dict:
+    """
+    FGSM + PGD-7 + CW-L2 evaluation.
+    AdversarialTester is imported from authenticityEngine — same module as model.
+    """
+    from authenticityEngine import AdversarialTester
     tester = AdversarialTester(model, device)
+    results: Dict = {}
 
-    results = {}
-    # Clean baseline (first max_batches batches)
+    # ── Clean baseline ────────────────────────────────────────────────────────
     clean_preds, clean_labels = [], []
     for i, (imgs, labels, _) in enumerate(loader):
-        if i >= max_batches: break
-        imgs, labels = imgs.to(device), labels.to(device)
+        if i >= max_batches:
+            break
         with torch.no_grad():
-            preds = model(imgs).argmax(1)
+            preds = model(imgs.to(device)).argmax(1)
         clean_preds.extend(preds.cpu().numpy())
-        clean_labels.extend(labels.cpu().numpy())
+        clean_labels.extend(labels.numpy())
     clean_bal = balanced_accuracy(np.array(clean_preds), np.array(clean_labels))
     results['clean_bal_acc'] = clean_bal
 
-    # FGSM for each epsilon
+    # ── FGSM ─────────────────────────────────────────────────────────────────
     for eps in fgsm_eps_list:
         adv_preds, adv_labels = [], []
         for i, (imgs, labels, _) in enumerate(loader):
-            if i >= max_batches: break
-            imgs, labels = imgs.to(device), labels.to(device)
-            adv = tester.fgsm(imgs, labels, eps=eps)
+            if i >= max_batches:
+                break
+            adv = tester.fgsm(imgs.to(device), labels.to(device), eps=eps)
             with torch.no_grad():
                 preds = model(adv).argmax(1)
             adv_preds.extend(preds.cpu().numpy())
-            adv_labels.extend(labels.cpu().numpy())
+            adv_labels.extend(labels.numpy())
         bal = balanced_accuracy(np.array(adv_preds), np.array(adv_labels))
-        key = f"fgsm_{int(eps*255)}px255"
-        results[key] = bal
+        key = f"fgsm_{int(eps * 255)}px255"
+        results[key]           = bal
         results[f"{key}_drop"] = clean_bal - bal
 
-    # PGD-7
+    # ── PGD-7 ─────────────────────────────────────────────────────────────────
     pgd_preds, pgd_labels = [], []
     for i, (imgs, labels, _) in enumerate(loader):
-        if i >= max_batches: break
-        imgs, labels = imgs.to(device), labels.to(device)
-        adv = tester.pgd(imgs, labels, eps=pgd_eps, alpha=2/255, steps=pgd_steps)
+        if i >= max_batches:
+            break
+        adv = tester.pgd(imgs.to(device), labels.to(device),
+                         eps=pgd_eps, alpha=2/255, steps=pgd_steps)
         with torch.no_grad():
             preds = model(adv).argmax(1)
         pgd_preds.extend(preds.cpu().numpy())
-        pgd_labels.extend(labels.cpu().numpy())
+        pgd_labels.extend(labels.numpy())
     pgd_bal = balanced_accuracy(np.array(pgd_preds), np.array(pgd_labels))
     results['pgd7_bal_acc'] = pgd_bal
     results['pgd7_drop']    = clean_bal - pgd_bal
+
+    # ── CW-L2 (light eval, few batches) ──────────────────────────────────────
+    cw_preds, cw_labels = [], []
+    for i, (imgs, labels, _) in enumerate(loader):
+        if i >= cw_batches:
+            break
+        adv = tester.cw_l2(imgs.to(device), labels.to(device))
+        with torch.no_grad():
+            preds = model(adv).argmax(1)
+        cw_preds.extend(preds.cpu().numpy())
+        cw_labels.extend(labels.numpy())
+    if cw_preds:
+        cw_bal = balanced_accuracy(np.array(cw_preds), np.array(cw_labels))
+        results['cw_l2_bal_acc'] = cw_bal
+        results['cw_l2_drop']    = clean_bal - cw_bal
 
     return results
 
@@ -433,218 +458,149 @@ def adversarial_eval(model, loader, device,
 # 6.  MC-DROPOUT UNCERTAINTY
 # ══════════════════════════════════════════════════════════════════════════════
 
-def mc_uncertainty_eval(model, loader, device,
-                         n_passes: int = 10,
-                         max_batches: int = 20) -> Dict:
+def mc_uncertainty_eval(
+    model, loader, device,
+    n_passes: int = 10,
+    max_batches: int = 20,
+) -> Dict:
     """
-    Runs MC-Dropout and measures:
-    - Mean uncertainty for correct vs incorrect predictions
-    - Fraction of uncertain predictions (uncertainty > threshold)
+    Runs predict_with_uncertainty (MC-Dropout) and measures whether the model
+    is correctly more uncertain on its mistakes than on its correct predictions.
+    A healthy separation ratio > 2.0 means uncertainty is a useful signal.
     """
-    from ForensicsAI import predict_with_uncertainty
+    from authenticityEngine import predict_with_uncertainty
 
-    unc_correct, unc_wrong = [], []
+    unc_correct: List[float] = []
+    unc_wrong:   List[float] = []
+
     for i, (imgs, labels, _) in enumerate(loader):
-        if i >= max_batches: break
-        imgs = imgs.to(device)
-        result = predict_with_uncertainty(model, imgs, n_passes=n_passes)
+        if i >= max_batches:
+            break
+        result = predict_with_uncertainty(model, imgs.to(device), n_passes=n_passes)
         preds = result['prediction'].cpu().numpy()
         uncs  = result['uncertainty'].cpu().numpy()
-        labs  = labels.numpy()
-        for p, u, l in zip(preds, uncs, labs):
-            if p == l:
-                unc_correct.append(u)
-            else:
-                unc_wrong.append(u)
+        for p, u, l in zip(preds, uncs, labels.numpy()):
+            (unc_correct if p == l else unc_wrong).append(float(u))
 
-    mean_unc_correct = float(np.mean(unc_correct)) if unc_correct else float('nan')
-    mean_unc_wrong   = float(np.mean(unc_wrong))   if unc_wrong   else float('nan')
+    mean_uc = float(np.mean(unc_correct)) if unc_correct else float('nan')
+    mean_uw = float(np.mean(unc_wrong))   if unc_wrong   else float('nan')
     return {
-        'mean_uncertainty_correct': mean_unc_correct,
-        'mean_uncertainty_wrong':   mean_unc_wrong,
-        'n_correct': len(unc_correct),
-        'n_wrong':   len(unc_wrong),
-        'separation_ratio': (mean_unc_wrong / (mean_unc_correct + 1e-8)
-                             if unc_correct and unc_wrong else float('nan')),
+        'mean_uncertainty_correct': mean_uc,
+        'mean_uncertainty_wrong':   mean_uw,
+        'n_correct':         len(unc_correct),
+        'n_wrong':           len(unc_wrong),
+        'separation_ratio':  (mean_uw / (mean_uc + 1e-8)
+                              if unc_correct and unc_wrong else float('nan')),
     }
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 7.  THROUGHPUT
+# 7.  THROUGHPUT / LATENCY
 # ══════════════════════════════════════════════════════════════════════════════
 
 @torch.no_grad()
-def throughput_test(model, device, input_size: int = 224,
-                    batch_size: int = 8, n_warmup: int = 5, n_runs: int = 20) -> Dict:
-    """Measures forward-pass throughput in images/sec and ms/image."""
+def throughput_test(
+    model, device,
+    input_size: int = 224,
+    batch_size: int = 8,
+    n_warmup: int = 5,
+    n_runs: int = 20,
+) -> Dict:
+    """Measures forward-pass throughput on dummy data."""
     dummy = torch.randn(batch_size, 3, input_size, input_size, device=device)
     model.eval()
-    # Warm-up
     for _ in range(n_warmup):
-        _ = model(dummy)
+        model(dummy)
     if device.type == 'cuda':
         torch.cuda.synchronize()
 
     t0 = time.perf_counter()
     for _ in range(n_runs):
-        _ = model(dummy)
+        model(dummy)
     if device.type == 'cuda':
         torch.cuda.synchronize()
     elapsed = time.perf_counter() - t0
 
     total_images = batch_size * n_runs
-    ips = total_images / elapsed
-    ms_per_image = 1000.0 * elapsed / total_images
     return {
-        'images_per_sec': round(ips, 1),
-        'ms_per_image':   round(ms_per_image, 3),
+        'images_per_sec': round(total_images / elapsed, 1),
+        'ms_per_image':   round(1000.0 * elapsed / total_images, 3),
         'batch_size':     batch_size,
         'n_runs':         n_runs,
     }
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 8.  SINGLE-IMAGE INFERENCE (deploy use-case)
-# ══════════════════════════════════════════════════════════════════════════════
-
-def single_image_test(model, image_path: str, device: torch.device) -> Dict:
-    """Runs full predict() + explainability on one image."""
-    tf = get_test_transform()
-    try:
-        img_pil = Image.open(image_path).convert('RGB')
-    except Exception as e:
-        return {'error': str(e)}
-
-    tensor = tf(img_pil).unsqueeze(0).to(device)   # (1, 3, 224, 224)
-
-    model.eval()
-    result      = model.predict(tensor)
-    expl_report = model.get_explainability_report(tensor)
-
-    label_map = {0: "FAKE / GAN", 1: "REAL"}
-    pred_idx  = int(result['prediction'][0].item())
-    conf      = float(result['confidence'][0].item())
-    unc       = float(result['uncertainty'])
-
-    return {
-        'image':           image_path,
-        'prediction':      label_map[pred_idx],
-        'prediction_idx':  pred_idx,
-        'confidence':      conf,
-        'uncertainty':     unc,
-        'stream_importance':      result['stream_importance'],
-        'stream_reliability':     result['stream_reliability'],
-        'contradiction_strength': result['contradiction_strength'],
-        'explainability':  expl_report,
-    }
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# 9.  GRADCAM TEST
+# 8.  GRADCAM
 # ══════════════════════════════════════════════════════════════════════════════
 
 def gradcam_test(model, device) -> bool:
-    """Checks GradCAM produces a valid heatmap (no crash, correct shape)."""
-    from ForensicsAI import GradCAM
+    """
+    Tests all three GradCAM surfaces from authenticityEngine.GradCAM:
+      - generate()                 → multi-scale weighted freq-CAM
+      - generate_pixel_attn_cam()  → SRM pixel attention heatmap
+      - generate_overlay()         → fused freq + pixel CAM
+    All outputs must be (224, 224) tensors with values in [0, 1].
+    """
+    from authenticityEngine import GradCAM
     dummy = torch.randn(1, 3, 224, 224, device=device)
+    ok = True
+
     try:
         cam = GradCAM(model)
+
+        # 1. Multi-scale freq-CAM
         heatmap = cam.generate(dummy, class_idx=1)
-        assert heatmap.shape == (224, 224), f"Unexpected shape: {heatmap.shape}"
-        assert heatmap.min() >= 0.0 and heatmap.max() <= 1.0, "Heatmap out of [0,1]"
+        assert heatmap.shape == (224, 224), f"generate() shape={heatmap.shape}"
+        assert heatmap.min() >= 0.0 and heatmap.max() <= 1.0, "generate() out of [0,1]"
+        _ok("generate() → 224×224 freq-CAM ✓")
+
+        # 2. Pixel attention CAM (SRM PixelFrequencyHead)
         pixel_cam = cam.generate_pixel_attn_cam(dummy)
-        assert pixel_cam.shape == (224, 224)
-        return True
+        assert pixel_cam.shape == (224, 224), f"generate_pixel_attn_cam() shape={pixel_cam.shape}"
+        _ok("generate_pixel_attn_cam() → 224×224 pixel-attn-CAM ✓")
+
+        # 3. Fused overlay (freq + pixel)
+        overlay = cam.generate_overlay(dummy, class_idx=1)
+        assert 'freq_cam'  in overlay, "generate_overlay() missing freq_cam"
+        assert 'pixel_cam' in overlay, "generate_overlay() missing pixel_cam"
+        assert 'fused_cam' in overlay, "generate_overlay() missing fused_cam"
+        assert overlay['fused_cam'].shape == (224, 224), \
+            f"generate_overlay() fused shape={overlay['fused_cam'].shape}"
+        _ok("generate_overlay() → freq_cam + pixel_cam + fused_cam ✓")
+
     except Exception as e:
         _fail(f"GradCAM error: {e}")
-        return False
+        ok = False
+
+    return ok
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# 10. GENERATOR HEAD TEST
-# ══════════════════════════════════════════════════════════════════════════════
-
-@torch.no_grad()
-def generator_head_test(model, loader, device, max_batches: int = 5) -> Dict:
-    """
-    Tests forward_with_generator — maps each image to one of:
-      real | dalle | midjourney | stable_diffusion | gemini | etc.
-    Returns top-1 predicted GAN type breakdown.
-    """
-    from ForensicsAI import GENERATOR_LABELS
-
-    gen_counts = defaultdict(int)
-    total = 0
-    for i, (imgs, labels, _) in enumerate(loader):
-        if i >= max_batches: break
-        imgs = imgs.to(device)
-        bin_logits, gen_logits = model.forward_with_generator(imgs)
-        if gen_logits is None:
-            return {'generator_head': 'disabled'}
-        gen_preds = gen_logits.argmax(dim=1).cpu().numpy()
-        for p in gen_preds:
-            label = GENERATOR_LABELS[p] if p < len(GENERATOR_LABELS) else f"class_{p}"
-            gen_counts[label] += 1
-            total += 1
-
-    return {
-        'generator_type_breakdown': dict(gen_counts),
-        'total_images': total,
-    }
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# 11. CONFIDENCE DISTRIBUTION
-# ══════════════════════════════════════════════════════════════════════════════
-
-def confidence_analysis(preds: np.ndarray, labels: np.ndarray,
-                        confs: np.ndarray) -> Dict:
-    """
-    Analyses confidence distributions for FAKE and REAL, separately
-    for correct and incorrect predictions.
-    """
-    def _stats(arr):
-        if len(arr) == 0: return {'mean': float('nan'), 'std': float('nan'),
-                                   'p10': float('nan'), 'p90': float('nan')}
-        return {
-            'mean': float(np.mean(arr)),
-            'std':  float(np.std(arr)),
-            'p10':  float(np.percentile(arr, 10)),
-            'p90':  float(np.percentile(arr, 90)),
-        }
-
-    mask_fake  = labels == 0
-    mask_real  = labels == 1
-    correct    = preds == labels
-    wrong      = ~correct
-
-    return {
-        'FAKE_correct': _stats(confs[mask_fake & correct]),
-        'FAKE_wrong':   _stats(confs[mask_fake & wrong]),
-        'REAL_correct': _stats(confs[mask_real & correct]),
-        'REAL_wrong':   _stats(confs[mask_real & wrong]),
-        'overall_correct': _stats(confs[correct]),
-        'overall_wrong':   _stats(confs[wrong]),
-        'high_conf_errors': int(((confs > 0.9) & wrong).sum()),
-    }
-
-
-# ══════════════════════════════════════════════════════════════════════════════
-# 12. NaN STABILITY
+# 9.  NaN / DEGENERATE INPUT STABILITY
 # ══════════════════════════════════════════════════════════════════════════════
 
 @torch.no_grad()
 def nan_stability_test(model, device) -> bool:
-    x_nan  = torch.full((1, 3, 224, 224), float('nan'),  device=device)
-    x_zero = torch.zeros((1, 3, 224, 224), device=device)
-    x_inf  = torch.full((1, 3, 224, 224), float('inf'),  device=device)
+    """
+    Feeds NaN, zero, and +Inf tensors through the model.
+    authenticityEngine._forward_core() calls torch.nan_to_num() on input before
+    any computation, so all three must produce finite logits without crashing.
+    """
+    inputs = [
+        ("NaN",  torch.full((1, 3, 224, 224), float('nan'), device=device)),
+        ("Zero", torch.zeros((1, 3, 224, 224), device=device)),
+        ("Inf",  torch.full((1, 3, 224, 224), float('inf'), device=device)),
+    ]
     ok = True
-    for name, x in [("NaN", x_nan), ("Zero", x_zero), ("Inf", x_inf)]:
+    for name, x in inputs:
         try:
             out = model(x)
             if not torch.isfinite(out).all():
-                _fail(f"{name} input → non-finite logits")
+                _fail(f"{name} input → non-finite logits: {out}")
                 ok = False
+            else:
+                _ok(f"{name} input → finite logits {[round(v, 3) for v in out[0].tolist()]}")
         except Exception as e:
             _fail(f"{name} input crashed model: {e}")
             ok = False
@@ -652,13 +608,87 @@ def nan_stability_test(model, device) -> bool:
 
 
 # ══════════════════════════════════════════════════════════════════════════════
-# REPORTING
+# 10. SINGLE-IMAGE INFERENCE
+# ══════════════════════════════════════════════════════════════════════════════
+
+def single_image_test(model, image_path: str, device: torch.device) -> Dict:
+    """
+    Runs the full deploy pipeline on one image:
+      model.predict()                 → prediction, confidence, uncertainty, stream_importance
+      model.get_explainability_report() → gate weights, epistemic, routing report
+    """
+    tf = get_test_transform()
+    try:
+        img_pil = Image.open(image_path).convert('RGB')
+    except Exception as e:
+        return {'error': str(e)}
+
+    tensor = tf(img_pil).unsqueeze(0).to(device)
+    model.eval()
+
+    result = model.predict(tensor)
+    expl   = model.get_explainability_report(tensor)
+
+    pred_idx = int(result['prediction'][0].item())
+    conf     = float(result['confidence'][0].item())
+    unc      = float(result['uncertainty'])
+
+    return {
+        'image':                 image_path,
+        'prediction':            "REAL" if pred_idx == 1 else "FAKE / GAN",
+        'prediction_idx':        pred_idx,
+        'confidence':            conf,
+        'uncertainty':           unc,
+        'stream_importance':     result['stream_importance'],
+        'stream_reliability':    result['stream_reliability'],
+        'contradiction_strength': result['contradiction_strength'],
+        'explainability':        expl,
+    }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# 11. CONFIDENCE DISTRIBUTION ANALYSIS
+# ══════════════════════════════════════════════════════════════════════════════
+
+def confidence_analysis(
+    preds: np.ndarray, labels: np.ndarray, confs: np.ndarray
+) -> Dict:
+    def _stats(arr):
+        if not len(arr):
+            return {'mean': float('nan'), 'std': float('nan'),
+                    'p10': float('nan'), 'p90': float('nan')}
+        return {
+            'mean': float(np.mean(arr)),
+            'std':  float(np.std(arr)),
+            'p10':  float(np.percentile(arr, 10)),
+            'p90':  float(np.percentile(arr, 90)),
+        }
+
+    mask_fake = labels == 0
+    mask_real = labels == 1
+    correct   = preds == labels
+    wrong     = ~correct
+
+    return {
+        'FAKE_correct':    _stats(confs[mask_fake & correct]),
+        'FAKE_wrong':      _stats(confs[mask_fake & wrong]),
+        'REAL_correct':    _stats(confs[mask_real & correct]),
+        'REAL_wrong':      _stats(confs[mask_real & wrong]),
+        'overall_correct': _stats(confs[correct]),
+        'overall_wrong':   _stats(confs[wrong]),
+        'high_conf_errors': int(((confs > 0.9) & wrong).sum()),
+    }
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PRINTING / REPORTING
 # ══════════════════════════════════════════════════════════════════════════════
 
 def _fmt(v, pct=False, dec=2):
-    if isinstance(v, float) and np.isnan(v): return "N/A"
-    if pct: return f"{v*100:.{dec}f}%"
-    return f"{v:.{dec}f}"
+    if isinstance(v, float) and np.isnan(v):
+        return "N/A"
+    return f"{v * 100:.{dec}f}%" if pct else f"{v:.{dec}f}"
+
 
 def _verdict(bal_acc: float) -> str:
     if bal_acc >= 0.90: return f"{GRN}EXCELLENT{RST}"
@@ -673,11 +703,11 @@ def print_dataset_results(res: Dict):
     confs  = res['confs']
     scores = res['scores']
 
-    acc     = (preds == labels).mean()
-    bal_acc = balanced_accuracy(preds, labels)
-    recall  = per_class_recall(preds, labels)
-    prec    = per_class_precision(preds, labels)
-    auc     = roc_auc(labels, scores)
+    acc      = (preds == labels).mean()
+    bal_acc  = balanced_accuracy(preds, labels)
+    recall   = per_class_recall(preds, labels)
+    prec     = per_class_precision(preds, labels)
+    auc      = roc_auc(labels, scores)
     ece, mce = expected_calibration_error(confs, (preds == labels).astype(float))
 
     f1_fake = f1_score(prec.get('FAKE', 0), recall.get('FAKE', 0))
@@ -691,7 +721,7 @@ def print_dataset_results(res: Dict):
     print(f"  Macro F1          : {_fmt(f1_mac, pct=True)}")
     print()
     print(f"  {'Class':<10}  {'Precision':>10}  {'Recall':>10}  {'F1':>10}")
-    print(f"  {'─'*46}")
+    print(f"  {'─' * 46}")
     for cls in ['FAKE', 'REAL']:
         p = prec.get(cls, float('nan'))
         r = recall.get(cls, float('nan'))
@@ -701,7 +731,7 @@ def print_dataset_results(res: Dict):
     _hdr("CALIBRATION")
     print(f"  Expected Calibration Error (ECE) : {_fmt(ece, dec=4)}")
     print(f"  Maximum Calibration Error  (MCE) : {_fmt(mce, dec=4)}")
-    if ece < 0.05:  _ok("Well-calibrated (ECE < 5%)")
+    if   ece < 0.05: _ok("Well-calibrated (ECE < 5%)")
     elif ece < 0.10: _warn("Moderately calibrated (ECE 5–10%)")
     else:            _fail("Poorly calibrated (ECE > 10%)")
 
@@ -715,23 +745,34 @@ def print_dataset_results(res: Dict):
     print(f"  High-conf errors (>90% conf, wrong): {cd['high_conf_errors']}")
 
     _hdr("STREAM DIAGNOSTICS")
-    _sub("Gate weights (how much each stream influences the decision):")
+    _sub("Gate weights (influence on final decision) — descending:")
     for k, v in sorted(res['gate_weights'].items(), key=lambda x: -x[1]):
-        bar = '█' * int(v * 30)
+        bar = '█' * max(1, int(v * 30))
         print(f"    {k:<18}: {v:.4f}  {bar}")
-    _sub(f"\nParity alpha (forensic authority): {res['parity_alpha']:.4f}  "
-         f"[0.3=semantic-led, 0.7=forensic-led]")
+
+    if res.get('effective'):
+        _sub("\nEffective contribution (gate × evidential reliability) — descending:")
+        for k, v in sorted(res['effective'].items(), key=lambda x: -x[1]):
+            bar = '█' * max(1, int(v * 30))
+            print(f"    {k:<18}: {v:.4f}  {bar}")
+
+    print(f"\n  Parity alpha (forensic authority): {res['parity_alpha']:.4f}"
+          f"  [0.3=semantic-led ↔ 0.7=forensic-led]")
+
     _sub("\nStream epistemic uncertainty (lower = more confident):")
     for k, v in sorted(res['epistemic'].items()):
-        print(f"    {k:<18}: {v:.4f}")
-    _sub("\nStream reliability:")
-    for k, v in sorted(res['reliability'].items()):
-        print(f"    {k:<18}: {v:.4f}")
+        color = GRN if v < 0.1 else (YLW if v < 0.3 else RED)
+        print(f"    {k:<18}: {color}{v:.4f}{RST}")
+
+    _sub("\nStream reliability (higher = more trustworthy):")
+    for k, v in sorted(res['reliability'].items(), key=lambda x: -x[1]):
+        color = GRN if v > 0.7 else (YLW if v > 0.4 else RED)
+        print(f"    {k:<18}: {color}{v:.4f}{RST}")
 
     _hdr("ERRORS")
     print(f"  Total misclassified : {len(res['error_paths'])}")
     if res['error_paths']:
-        print(f"  Worst 5 (by confidence):")
+        print("  Worst 5 (highest confidence wrong predictions):")
         worst = sorted(res['error_paths'], key=lambda x: -x[3])[:5]
         for path, true_l, pred_l, cf in worst:
             tname = "REAL" if true_l == 1 else "FAKE"
@@ -742,26 +783,43 @@ def print_dataset_results(res: Dict):
 def print_adv_results(adv: Dict):
     _hdr("ADVERSARIAL ROBUSTNESS")
     clean = adv.get('clean_bal_acc', float('nan'))
-    print(f"  Clean bal_acc : {_fmt(clean, pct=True)}")
-    for key, val in adv.items():
-        if key == 'clean_bal_acc': continue
-        if 'drop' in key:
-            color = GRN if val < 0.05 else (YLW if val < 0.15 else RED)
-            print(f"  {key:<28}: {color}{_fmt(val, pct=True)}{RST}")
-        else:
-            print(f"  {key:<28}: {_fmt(val, pct=True)}")
+    print(f"  Clean bal_acc  : {_fmt(clean, pct=True)}")
+    print()
+    attack_order = [
+        ('fgsm_4px255',    'fgsm_4px255_drop'),
+        ('fgsm_8px255',    'fgsm_8px255_drop'),
+        ('pgd7_bal_acc',   'pgd7_drop'),
+        ('cw_l2_bal_acc',  'cw_l2_drop'),
+    ]
+    for bal_key, drop_key in attack_order:
+        if bal_key not in adv:
+            continue
+        bal  = adv[bal_key]
+        drop = adv.get(drop_key, float('nan'))
+        color = GRN if drop < 0.05 else (YLW if drop < 0.15 else RED)
+        label = bal_key.replace('_bal_acc', '').replace('px255', '/255')
+        print(f"  {label:<14} bal_acc={_fmt(bal, pct=True)}  "
+              f"drop={color}{_fmt(drop, pct=True)}{RST}")
+    print()
+    worst_drop = max(
+        (adv.get(k, 0) for k in ['fgsm_8px255_drop', 'pgd7_drop', 'cw_l2_drop']),
+        default=0.0
+    )
+    if   worst_drop < 0.05:  _ok("ROBUST — worst-case bal_acc drop < 5%")
+    elif worst_drop < 0.15:  _warn("MODERATE — worst-case drop 5–15%")
+    else:                     _fail("VULNERABLE — worst-case drop > 15%")
 
 
 def print_mc_results(mc: Dict):
     _hdr("MC-DROPOUT UNCERTAINTY")
     r = mc.get('separation_ratio', float('nan'))
     print(f"  Mean uncertainty (correct preds) : {_fmt(mc['mean_uncertainty_correct'], dec=4)}")
-    print(f"  Mean uncertainty (wrong   preds) : {_fmt(mc['mean_uncertainty_wrong'], dec=4)}")
+    print(f"  Mean uncertainty (wrong   preds) : {_fmt(mc['mean_uncertainty_wrong'],   dec=4)}")
     print(f"  Uncertainty separation ratio     : {_fmt(r, dec=2)}×")
     if not np.isnan(r):
-        if r > 2.0:   _ok("Model is more uncertain on its mistakes (healthy)")
+        if   r > 2.0: _ok("Model is more uncertain on its mistakes (healthy)")
         elif r > 1.2: _warn("Weak uncertainty separation")
-        else:          _fail("Model is not more uncertain on wrong predictions")
+        else:          _fail("Model is NOT more uncertain on wrong predictions")
 
 
 def print_throughput_results(tp: Dict):
@@ -781,31 +839,26 @@ def print_single_image_result(res: Dict):
     conf    = res['confidence']
     unc     = res['uncertainty']
 
-    # ── Big clear verdict ────────────────────────────────────────────────────
     print()
     if is_real:
-        verdict_line = f"{GRN}{BLD}  ✅  VERDICT : REAL IMAGE{RST}"
+        print(f"{GRN}{BLD}  ✅  VERDICT : REAL IMAGE{RST}")
     else:
-        verdict_line = f"{RED}{BLD}  🚨  VERDICT : FAKE / GAN IMAGE{RST}"
-    print(verdict_line)
+        print(f"{RED}{BLD}  🚨  VERDICT : FAKE / GAN IMAGE{RST}")
     print()
 
-    # Confidence bar
-    bar_len  = 40
-    filled   = int(conf * bar_len)
-    bar      = (GRN if is_real else RED) + '█' * filled + RST + '░' * (bar_len - filled)
-    print(f"  Confidence  : [{bar}] {conf*100:.1f}%")
+    bar_len = 40
+    filled  = int(conf * bar_len)
+    bar     = (GRN if is_real else RED) + '█' * filled + RST + '░' * (bar_len - filled)
+    print(f"  Confidence  : [{bar}] {conf * 100:.1f}%")
 
-    # Uncertainty indicator
     unc_label = "Low (confident)" if unc < 0.05 else ("Medium" if unc < 0.15 else "High (uncertain)")
     print(f"  Uncertainty : {unc:.4f}  ({unc_label})")
     print(f"  Image       : {res['image']}")
     print()
 
-    # Stream votes
     _sub("  Stream votes (which forensic signals drove the decision):")
     for k, v in sorted(res['stream_importance'].items(), key=lambda x: -x[1]):
-        bar_s = '█' * int(v * 30)
+        bar_s = '█' * max(1, int(v * 30))
         print(f"    {k:<18}: {v:.3f}  {bar_s}")
 
     print()
@@ -816,9 +869,11 @@ def print_single_image_result(res: Dict):
 
     print()
     contr = res['contradiction_strength']
-    contr_label = ("Low — streams agree" if contr < 0.05
-                   else ("Medium — some disagreement" if contr < 0.15
-                         else "High — streams contradict each other"))
+    contr_label = (
+        "Low — streams agree" if contr < 0.05 else
+        ("Medium — some disagreement" if contr < 0.15 else
+         "High — streams contradict each other")
+    )
     print(f"  Stream contradiction: {contr:.4f}  ({contr_label})")
 
 
@@ -827,35 +882,37 @@ def print_single_image_result(res: Dict):
 # ══════════════════════════════════════════════════════════════════════════════
 
 def parse_args():
-    p = argparse.ArgumentParser(description="ForensicsAI Test Suite")
-    p.add_argument("--ckpt_dir",   default="./checkpoints",
+    p = argparse.ArgumentParser(description="ForensicEngine (Stable Edition) Test Suite")
+    p.add_argument("--ckpt_dir",    default="./checkpoints",
                    help="Directory containing best.pt / final.pt / checkpoint.pt")
-    p.add_argument("--ckpt_file",  default=None,
-                   help="Explicit checkpoint file path (overrides --ckpt_dir search)")
-    p.add_argument("--data_dir",   default=None,
-                   help="Test dataset root (real/ + fake/ subdirs)")
-    p.add_argument("--image",      default=None,
-                   help="Single image path for quick inference test")
-    p.add_argument("--src_dir",    default=".",
-                   help="Directory containing ForensicsAI.py (default: current dir)")
-    p.add_argument("--batch_size", type=int, default=8)
-    p.add_argument("--workers",    type=int, default=2)
-    p.add_argument("--n_iters",    type=int, default=2,
-                   help="ISFCR reasoning iterations (match training value)")
-    p.add_argument("--adv_eval",   action="store_true",
-                   help="Run adversarial robustness evaluation (slower)")
-    p.add_argument("--adv_batches",type=int, default=20,
-                   help="Max batches for adversarial eval")
-    p.add_argument("--mc_eval",    action="store_true",
+    p.add_argument("--ckpt_file",   default=None,
+                   help="Explicit checkpoint path (overrides --ckpt_dir search)")
+    p.add_argument("--data_dir",    default=None,
+                   help="Test dataset root with real/ and fake/ subdirs")
+    p.add_argument("--image",       default=None,
+                   help="Single image path for quick inference")
+    p.add_argument("--src_dir",     default=".",
+                   help="Directory containing authenticityEngine.py (default: current dir)")
+    p.add_argument("--batch_size",  type=int, default=8)
+    p.add_argument("--workers",     type=int, default=2)
+    p.add_argument("--n_iters",     type=int, default=2,
+                   help="ISFCR reasoning iterations (must match training value)")
+    p.add_argument("--adv_eval",    action="store_true",
+                   help="Run FGSM + PGD-7 + CW-L2 adversarial evaluation")
+    p.add_argument("--adv_batches", type=int, default=20,
+                   help="Max batches for FGSM/PGD adversarial eval")
+    p.add_argument("--cw_batches",  type=int, default=5,
+                   help="Max batches for CW-L2 (slower attack, fewer batches)")
+    p.add_argument("--mc_eval",     action="store_true",
                    help="Run MC-Dropout uncertainty evaluation")
-    p.add_argument("--mc_passes",  type=int, default=10,
-                   help="MC-Dropout forward passes")
-    p.add_argument("--mc_batches", type=int, default=20)
-    p.add_argument("--gradcam",    action="store_true",
-                   help="Run GradCAM sanity check")
-    p.add_argument("--save_json",  default=None,
+    p.add_argument("--mc_passes",   type=int, default=10,
+                   help="MC-Dropout forward passes per image")
+    p.add_argument("--mc_batches",  type=int, default=20)
+    p.add_argument("--gradcam",     action="store_true",
+                   help="Run GradCAM sanity check (generate, pixel_attn_cam, overlay)")
+    p.add_argument("--save_json",   default=None,
                    help="Save full results dict to this JSON path")
-    p.add_argument("--seed",       type=int, default=42)
+    p.add_argument("--seed",        type=int, default=42)
     return p.parse_args()
 
 
@@ -868,135 +925,147 @@ def main():
     torch.manual_seed(args.seed)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(f"\n{BLD}ForensicsAI Test Suite{RST}  |  device={device}")
+    print(f"\n{BLD}ForensicEngine — Test Suite (Stable Edition){RST}  |  device={device}")
     if device.type == 'cuda':
         prop = torch.cuda.get_device_properties(0)
-        print(f"  GPU: {prop.name}  {prop.total_memory/1e9:.1f} GB")
+        print(f"  GPU: {prop.name}  {prop.total_memory / 1e9:.1f} GB")
 
-    # ── Resolve checkpoint ───────────────────────────────────────────────────
+    # ── Checkpoint ────────────────────────────────────────────────────────────
     _hdr("CHECKPOINT LOADING")
     ckpt_path = args.ckpt_file or resolve_checkpoint(args.ckpt_dir)
     if ckpt_path:
-        print(f"  Using checkpoint: {ckpt_path}")
+        print(f"  Using: {ckpt_path}")
     else:
-        _warn("No checkpoint found. All results use random weights.")
+        _warn("No checkpoint found — all results use random weights.")
 
     model = load_model(ckpt_path, device, args)
-    total_params = sum(p.numel() for p in model.parameters())
-    train_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"  Parameters: total={total_params/1e6:.1f}M  trainable={train_params/1e6:.1f}M")
+    total  = sum(p.numel() for p in model.parameters())
+    train_ = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    print(f"  Parameters: total={total/1e6:.1f}M  trainable={train_/1e6:.1f}M")
     _ok("Model loaded")
 
-    all_results = {}
+    all_results: Dict = {}
 
-    # ── NaN stability (always runs) ──────────────────────────────────────────
-    _hdr("STABILITY TESTS")
-    if nan_stability_test(model, device):
-        _ok("NaN / zero / inf inputs all produce finite logits")
+    # ── Stability ─────────────────────────────────────────────────────────────
+    _hdr("STABILITY TESTS (NaN / Zero / Inf inputs)")
+    stable = nan_stability_test(model, device)
+    if stable:
+        _ok("All degenerate inputs produced finite logits")
     else:
-        _fail("Stability test FAILED")
+        _fail("Stability test FAILED — model may crash on corrupted images")
+    all_results['stability_ok'] = stable
 
-    # ── Throughput (always runs) ─────────────────────────────────────────────
+    # ── Throughput ────────────────────────────────────────────────────────────
     tp = throughput_test(model, device, batch_size=args.batch_size)
     print_throughput_results(tp)
     all_results['throughput'] = tp
 
-    # ── GradCAM ─────────────────────────────────────────────────────────────
+    # ── GradCAM ───────────────────────────────────────────────────────────────
     if args.gradcam:
-        _hdr("GRADCAM")
+        _hdr("GRADCAM SANITY CHECK")
         ok = gradcam_test(model, device)
-        if ok: _ok("FreqCAM + PixelAttnCAM both produce 224×224 heatmaps")
+        if ok:
+            _ok("All GradCAM surfaces (freq, pixel_attn, overlay) produce 224×224 heatmaps")
         all_results['gradcam_ok'] = ok
 
-    # ── Single-image inference ───────────────────────────────────────────────
+    # ── Single image ──────────────────────────────────────────────────────────
     if args.image:
         res = single_image_test(model, args.image, device)
         print_single_image_result(res)
         all_results['single_image'] = {k: v for k, v in res.items()
                                         if k != 'explainability'}
 
-    # ── Dataset evaluation ───────────────────────────────────────────────────
+    # ── Dataset evaluation ────────────────────────────────────────────────────
     if args.data_dir:
         _hdr("LOADING TEST DATASET")
         loader = build_loader(args.data_dir, args.batch_size, args.workers)
 
         _hdr("RUNNING EVALUATION")
-        t0 = time.time()
+        t0  = time.time()
         res = evaluate(model, loader, device)
-        print(f"  Evaluated {len(res['preds'])} images in {time.time()-t0:.1f}s")
+        elapsed = time.time() - t0
+        n = len(res['preds'])
+        print(f"  Evaluated {n} images in {elapsed:.1f}s  ({n/elapsed:.0f} img/s)")
         print_dataset_results(res)
+
         all_results['metrics'] = {
-            'accuracy':         float((res['preds'] == res['labels']).mean()),
+            'accuracy':          float((res['preds'] == res['labels']).mean()),
             'balanced_accuracy': float(balanced_accuracy(res['preds'], res['labels'])),
-            'auc_roc':          float(roc_auc(res['labels'], res['scores'])),
-            'recall':           per_class_recall(res['preds'], res['labels']),
-            'precision':        per_class_precision(res['preds'], res['labels']),
-            'gate_weights':     res['gate_weights'],
-            'parity_alpha':     res['parity_alpha'],
+            'auc_roc':           float(roc_auc(res['labels'], res['scores'])),
+            'recall':            per_class_recall(res['preds'], res['labels']),
+            'precision':         per_class_precision(res['preds'], res['labels']),
+            'gate_weights':      res['gate_weights'],
+            'effective':         res['effective'],
+            'parity_alpha':      res['parity_alpha'],
         }
 
-        # Error memory summary
+        # ── Error memory ──────────────────────────────────────────────────────
         _hdr("ERROR MEMORY SUMMARY")
-        err_summary = model.error_memory.summary()
-        print(f"  real_as_fake       : {err_summary.get('real_as_fake', '?')}")
-        print(f"  fake_as_real       : {err_summary.get('fake_as_real', '?')}")
-        print(f"  ema_fake_err_rate  : {err_summary.get('ema_fake_err_rate', 0):.4f}")
-        print(f"  ema_real_err_rate  : {err_summary.get('ema_real_err_rate', 0):.4f}")
-        all_results['error_memory'] = {
-            k: v for k, v in err_summary.items() if isinstance(v, (int, float))
-        }
+        err = model.error_memory.summary()
+        print(f"  Total errors        : {err.get('total_errors', '?')}")
+        print(f"  Total successes     : {err.get('total_successes', '?')}")
+        print(f"  real_as_fake        : {err.get('real_as_fake', '?')}")
+        print(f"  fake_as_real        : {err.get('fake_as_real', '?')}")
+        print(f"  ema_fake_err_rate   : {err.get('ema_fake_err_rate', 0):.4f}")
+        print(f"  ema_real_err_rate   : {err.get('ema_real_err_rate', 0):.4f}")
+        print(f"  avg_conf_real_err   : {err.get('avg_conf_real_err', 0):.4f}  (high = overconfident on real)")
+        print(f"  avg_conf_fake_err   : {err.get('avg_conf_fake_err', 0):.4f}  (high = overconfident on fake)")
+        if err.get('top_error_patterns'):
+            _sub("  Top error patterns:")
+            for pat, cnt in err['top_error_patterns'].items():
+                print(f"    {pat:<40}: {cnt}")
+        all_results['error_memory'] = {k: v for k, v in err.items()
+                                        if isinstance(v, (int, float))}
 
-        # Routing report
+        # ── Stream routing report ─────────────────────────────────────────────
         _hdr("STREAM ROUTING REPORT")
         print(model.get_routing_report())
-
-        # Generator head
-        _hdr("GENERATOR HEAD (GAN-type attribution)")
-        gen_res = generator_head_test(model, loader, device)
-        if 'generator_head' in gen_res and gen_res['generator_head'] == 'disabled':
-            _warn("Generator head not enabled in this checkpoint")
+        low = model.get_low_importance_streams(threshold=0.03)
+        if low:
+            _warn(f"Low-contribution streams (< 3% effective): {low}")
         else:
-            for k, v in sorted(gen_res['generator_type_breakdown'].items(),
-                                key=lambda x: -x[1]):
-                bar = '█' * max(1, int(30 * v / max(gen_res['total_images'], 1)))
-                print(f"  {k:<20}: {v:>5}  {bar}")
-        all_results['generator_head'] = gen_res
+            _ok("All streams contributing above threshold")
 
-        # MC-Dropout
+        # ── MC uncertainty ────────────────────────────────────────────────────
         if args.mc_eval:
-            _hdr("MC-DROPOUT UNCERTAINTY")
-            mc = mc_uncertainty_eval(model, loader, device,
-                                      n_passes=args.mc_passes,
-                                      max_batches=args.mc_batches)
+            mc = mc_uncertainty_eval(
+                model, loader, device,
+                n_passes=args.mc_passes,
+                max_batches=args.mc_batches,
+            )
             print_mc_results(mc)
             all_results['mc_uncertainty'] = mc
 
-        # Adversarial
+        # ── Adversarial ───────────────────────────────────────────────────────
         if args.adv_eval:
-            _hdr("ADVERSARIAL ROBUSTNESS (running…)")
-            adv = adversarial_eval(model, loader, device,
-                                    max_batches=args.adv_batches)
+            _hdr("ADVERSARIAL ROBUSTNESS (FGSM + PGD-7 + CW-L2) — running…")
+            adv = adversarial_eval(
+                model, loader, device,
+                max_batches=args.adv_batches,
+                cw_batches=args.cw_batches,
+            )
             print_adv_results(adv)
             all_results['adversarial'] = adv
 
-    # ── Save JSON ────────────────────────────────────────────────────────────
+    # ── Save JSON ─────────────────────────────────────────────────────────────
     if args.save_json:
         with open(args.save_json, 'w') as f:
             json.dump(all_results, f, indent=2, default=str)
-        _ok(f"Results saved to {args.save_json}")
+        _ok(f"Results saved → {args.save_json}")
 
-    # ── Final summary ────────────────────────────────────────────────────────
-    print(f"\n{'═'*70}")
+    # ── Final summary ─────────────────────────────────────────────────────────
+    print(f"\n{'═' * 70}")
     print(f"  {BLD}TEST COMPLETE{RST}")
     if 'metrics' in all_results:
-        b = all_results['metrics']['balanced_accuracy']
-        a = all_results['metrics']['auc_roc']
-        r_real = all_results['metrics']['recall'].get('REAL', float('nan'))
-        r_fake = all_results['metrics']['recall'].get('FAKE', float('nan'))
-        print(f"  Balanced Acc: {_fmt(b, pct=True)}  AUC: {_fmt(a, dec=4)}  "
-              f"REAL-Recall: {_fmt(r_real, pct=True)}  FAKE-Recall: {_fmt(r_fake, pct=True)}")
-        print(f"  Verdict: {_verdict(b)}")
-    print(f"{'═'*70}\n")
+        m     = all_results['metrics']
+        b     = m['balanced_accuracy']
+        a     = m['auc_roc']
+        r_real = m['recall'].get('REAL', float('nan'))
+        r_fake = m['recall'].get('FAKE', float('nan'))
+        print(f"  Balanced Acc : {_fmt(b, pct=True)}  AUC : {_fmt(a, dec=4)}  "
+              f"REAL-Recall : {_fmt(r_real, pct=True)}  FAKE-Recall : {_fmt(r_fake, pct=True)}")
+        print(f"  Verdict      : {_verdict(b)}")
+    print(f"{'═' * 70}\n")
 
 
 if __name__ == '__main__':
